@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<testsuites>
+<testsuite errors="1" failures="0" hostname="hazelnut.osuosl.org" name="net.cars.engine.BougieTest" tests="2" time="0.017" timestamp="2007-11-02T23:13:50">
+  <properties>
+    <property name="java.vendor" value="IBM Corporatioxn" />
+  </properties>
+  <testcase classname="JBIDE-34" name="Where ever we are we fail JBIDE-34">
+    <error message="Jira resolved with bad fix version (3.2.x)">JBIDE-234 Some text message!</error>
+  </testcase>
+
+  <testcase classname="net.cars.engine.BougieTest" name="sparkDry" time="0.0010" />
+  <testcase classname="net.cars.engine.BougieTest" name="sparkHumid" time="0.0050">
+    <error message="humidity level too high" type="java.lang.RuntimeException">java.lang.RuntimeException: humidity level too high
+	at net.cars.engine.Bougie.spark(Unknown Source)
+	at net.cars.engine.BougieTest.sparkHumid(BougieTest.java:36)
+</error>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
+
+<testsuite errors="0" failures="2" hostname="hazelnut.osuosl.org" name="JLint" tests="2" time="0.017" timestamp="2007-11-02T23:13:50">
+  <properties>
+    <property name="java.vendor" value="IBM Corporatioxn" />
+  </properties>
+  <testcase classname="JBIDE-34" name="Where ever we are we fail">
+    <error message="Jira resolved with bad fix version (3.2.x)">JBIDE-444 &lt;b&gt;Some&lt;\b&gt; text message!</error>
+  </testcase>
+
+  <testcase classname="net.cars.engine.BougieTest" name="sparkDry" time="0.0010" />
+  <testcase classname="net.cars.engine.BougieTest" name="sparkHumid" time="0.0050">
+    <error message="humidity level too high" type="java.lang.RuntimeException">java.lang.RuntimeException: humidity level too high
+	at net.cars.engine.Bougie.spark(Unknown Source)
+	at net.cars.engine.BougieTest.sparkHumid(BougieTest.java:36)
+</error>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
+
+</testsuites>

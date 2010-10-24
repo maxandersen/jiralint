@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<testsuite>
+  <testcase classname="JBIDE-6739" name="Grid.Qian"/>
+  <testcase classname="JBIDE-6654" name="elvisisking"/>
+  <testcase classname="JBIDE-6652" name="elvisisking"/>
+  <testcase classname="JBIDE-6483" name="rob.stryker@jboss.com"/>
+  <testcase classname="JBIDE-6388" name="KrisVerlaenen"/>
+  <testcase classname="JBIDE-6297" name="rob.stryker@jboss.com"/>
+  <testcase classname="JBIDE-6233" name="dpospisi@redhat.com"/>
+  <testcase classname="JBIDE-5318" name="elvisisking"/>
+</testsuite>
+
