@@ -1,5 +1,8 @@
 from xml.dom.minidom import Document
 
+def xstr(s):
+    return 'None' if s is None else str(s)
+
 def render(self, logger, jira_env, args, results):
     if jira_env.has_key('reportName'):
         reportName = jira_env['reportName']
@@ -25,11 +28,10 @@ def render(self, logger, jira_env, args, results):
         fixVersion = ""
         for version in v['fixVersions']:
             fixVersion += '_' + version['name']
-            
-            
+                
         testcase = doc.createElement("testcase")
         testcase.setAttribute("classname",reportName)
-        testcase.setAttribute("name", v['key'] + fixVersion + "_" + v['assignee'])
+        testcase.setAttribute("name", v['key'] + xstr(fixVersion) + "_" + xstr(v['assignee']))
         url = "https://jira.jboss.org/browse/" + v['key']
             
         error = doc.createElement("error")
