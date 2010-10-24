@@ -1289,6 +1289,7 @@ if (__name__ == "__main__"):
 
     logger = setupLogging(options.loglevel)
     jira_env = {}
+    jira_env['server_url'] = options.server
     server = options.server + "/rpc/soap/jirasoapservice-v2?wsdl"
     if not server.startswith('http'):  # also catches https
         server = 'http://' + server # default is no SSL

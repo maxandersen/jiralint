@@ -31,10 +31,11 @@ def render(self, logger, jira_env, args, results):
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname",reportName)
             testcase.setAttribute("name", v['key'] + xstr(fixVersion) + "_" + xstr(v['assignee']))
-            url = "https://jira.jboss.org/browse/" + v['key']
+            url = jira_env['server_url'] + '/browse/' + v['key']
 
+       
             error = doc.createElement("error")
-            error.setAttribute("message", desc + "( " + url + " )")
+            error.setAttribute("message", url + " -> " + desc + "( " + url + " )")
 
             errortext = doc.createTextNode(v['summary'] + "(" + url + ")" )
             error.appendChild(errortext)
