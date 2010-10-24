@@ -98,10 +98,10 @@ class JiraCommand:
             logger.info(self.usage)
             return 0
         results = self.run(logger, jira_env, args)
-        if results:
-            return self.render(logger, jira_env, args, results)
-        else:
-            return 1
+        #if results:
+        return self.render(logger, jira_env, args, results)
+        #else:
+        #    return 1
 
     def run(self, logger, jira_env, args):
         """Return a non-zero object for success"""
