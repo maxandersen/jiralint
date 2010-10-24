@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime
 import urllib
-from xml.dom.minidom import Document
+
 
 sys.path += [os.path.join('.', 'python-suds-0.3.9')]
 from suds.client import Client
@@ -30,7 +30,33 @@ auth = None
 
 global_user = None
 global_password = None
+global_render = None
 
+from hashlib import md5
+import os.path
+import imp
+import traceback
+
+def load_module(code_path):
+    try:
+        try:
+            code_dir = os.path.dirname(code_path)
+            code_file = os.path.basename(code_path)
+
+            fin = open(code_path, 'rb')
+
+            return  imp.load_source(md5(code_path).hexdigest(), code_path, fin)
+        finally:
+            try: fin.close()
+            except: pass
+    except ImportError, x:
+        traceback.print_exc(file = sys.stderr)
+        raise
+    except:
+        traceback.print_exc(file = sys.stderr)
+        raise
+
+    
 class JiraCommand:
 
     name = "<default>"
@@ -522,7 +548,6 @@ class JiraLogin(JiraCommand):
 
     def run(self, logger, jira_env, args):
         global soap, auth, global_user, global_password
-
         jirauser = global_user
         password = global_password
         
@@ -637,64 +662,27 @@ class JiraReport(JiraCommand):
         except Exception, e:
             logger.error(decode(e))
 
-    def xrender(self, logger, jira_env, args, results):
-        if jira_env.has_key('reportName'):
-           reportName = jira_env['reportName']
-        else:
-           reportName = str(jira_env['reportNumber'])
-        logger.info('Report \'' + reportName + '\', ' + str(len(results)) + ' issues')
-        logger.info('%s\t%s\t%s' % ('Key', 'Assignee', 'Summary'))
-        for i, v in enumerate(results):
-            # For available field names, see the variables in
-            # src/java/com/atlassian/jira/rpc/soap/beans/RemoteIssue.java 
-            logger.info('%s\t%s\t%s' % (v['key'], v['assignee'], v['summary']))
-        return 0
-
     def render(self, logger, jira_env, args, results):
-        if jira_env.has_key('reportName'):
-           reportName = jira_env['reportName']
+        global global_render
+
+        renderer = None
+        if global_render != None:
+            renderer = load_module(global_render)
+
+        if renderer == None:
+            if jira_env.has_key('reportName'):
+                reportName = jira_env['reportName']
+            else:
+                reportName = str(jira_env['reportNumber'])
+
+            logger.info('Report \'' + reportName + '\', ' + str(len(results)) + ' issues')
+            logger.info('%s\t%s\t%s' % ('Key', 'Assignee', 'Summary'))
+            for i, v in enumerate(results):
+                # For available field names, see the variables in
+                # src/java/com/atlassian/jira/rpc/soap/beans/RemoteIssue.java 
+                logger.info('%s\t%s\t%s' % (v['key'], v['assignee'], v['summary']))
         else:
-           reportName = str(jira_env['reportNumber'])
-
-        if jira_env.has_key('reportDescription'):
-            desc = jira_env['reportDescription']
-        else:
-            desc = "Unknown"
-            
-        doc = Document()
-        testsuite = doc.createElement("testsuite")
-        doc.appendChild(testsuite)
-        
-        #logger.info('Report \'' + reportName + '\', ' + str(len(results)) + ' issues')
-        #logger.info('%s\t%s\t%s' % ('Key', 'Assignee', 'Summary'))
-        for i, v in enumerate(results):
-            # For available field names, see the variables in
-            # src/java/com/atlassian/jira/rpc/soap/beans/RemoteIssue.java 
-            #logger.info('%s\t%s\t%s' % (v['key'], v['assignee'], v['summary']))
-            #  print v
-            fixVersion = ""
-            for version in v['fixVersions']:
-                fixVersion += '_' + version['name']
-            
-                
-            testcase = doc.createElement("testcase")
-            testcase.setAttribute("classname",reportName)
-            testcase.setAttribute("name", v['key'] + fixVersion + "_" + v['assignee'])
-            url = "https://jira.jboss.org/browse/" + v['key']
-            
-            error = doc.createElement("error")
-            error.setAttribute("message", desc + "( " + url + " )")
-
-            errortext = doc.createTextNode(v['summary'] + "(" + url + ")" )
-            error.appendChild(errortext)
-            
-            testcase.appendChild(error)
-            testsuite.appendChild(testcase)
-
-            
-            
-
-        print doc.toprettyxml(indent="  ")
+            renderer.render(self,logger,jira_env,args,results)     
         return 0    
 
 class JiraCreateUser(JiraCommand):
@@ -1287,6 +1275,10 @@ if (__name__ == "__main__"):
                       help="Verbosity, default: %default, debug is " + str(logging.DEBUG))
     parser.add_option("-s", "--server", dest="server", default="http://jira.example.com:80",
                       help="JIRA server and port to use, default: %default")
+
+    parser.add_option("-r", "--render", dest="render",
+                      help=".py file that contains render function for reports.")
+        
     parser.add_option("-u", "--user", dest="user",
                           help="User")
     parser.add_option("-p", "--password", dest="password",
@@ -1305,6 +1297,10 @@ if (__name__ == "__main__"):
 
     global_user = options.user
     global_password = options.password
+    if options.render != None:
+        global_render = options.render
+    
+    
     #if global_user: logger.error("global_user: " + global_user)
     #if global_password: logger.error("global_password: " + global_password)
     

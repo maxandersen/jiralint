@@ -1,1 +1,31 @@
 Experiment where I'm trying to use Hudson for early warnings/errors in jiras.
+
+Steps to use it:
+
+1. Create named filter(s) in your jira that mathces the jira's you
+   want to show up as test errors, i.e. I use "ToolsIllegalFixVersion"
+   which JQL is:
+
+  ((project = JBIDE and (fixVersion in ("3.1.x","3.2.x", "LATER") or
+  fixVersion is empty)) or (project = JBDS and (fixVersion in
+  ("3.0.x", "4.0.x", "LATER") or fixVersion is empty))) and resolution
+  = done and updatedDate >= "-90d"
+
+   Which basically shows all completed issues in JBIDE or JBDS which
+   fixVersion were not specified or an illegal fixVersion were used
+   (we use .x and LATER to designate "planned" issues).
+
+2. Setup a Hudson build which executes the following:
+
+   cd jira-cli-4.2/
+   ./jira -s ${JIRA_HOST} -u ${JIRA_USER} -p ${JIRA_PWD} -r ../testcase-render.py report ToolsIllegalFixVersion > $WORKSPACE/jiralint-test.xml
+
+   You should fill out the JIRA_* names or use the Masked Password and/or Build Parameters plugin in hudson to pass them in.
+
+3. Enable "Publish JUnit test result report" in the Hudson job and set it to include "**/*-test.xml so it matches the jiralint-test.xml file, i.e. "**/*-test.xml"
+
+4. Run the build
+
+Now you should get a failed build if there are any jiras matching your filter.
+
+Have fun!
