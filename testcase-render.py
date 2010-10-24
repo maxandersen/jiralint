@@ -35,9 +35,9 @@ def render(self, logger, jira_env, args, results):
 
        
             error = doc.createElement("error")
-            error.setAttribute("message", url + " -> " + desc + "( " + url + " )")
+            error.setAttribute("message", url + " -> " + desc)
 
-            errortext = doc.createTextNode(v['summary'] + "(" + url + ")" )
+            errortext = doc.createTextNode(v['key'] + ": " + v['summary'] + "(" + url + ")" )
             error.appendChild(errortext)
 
             testcase.appendChild(error)
