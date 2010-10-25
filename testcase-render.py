@@ -50,7 +50,7 @@ def render(self, logger, jira_env, args, results):
     else:
         testcase = doc.createElement("testcase")
         testcase.setAttribute("classname", reportName)
-        testcase.setAttribute("name", "noissues")
+        testcase.setAttribute("name", "found.noissues")
         testsuite.appendChild(testcase)
     
     print doc.toprettyxml(indent="  ")
