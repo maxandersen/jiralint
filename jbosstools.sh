@@ -4,4 +4,4 @@
 #echo FIXME: https://jira.jboss.org/browse/JBDS-34 is even worse >> tasks.txt
 cd jira-cli-4.2/
 ./jira -s https://jira.jboss.org -u ${JIRA_USER} -p ${JIRA_PWD} -r ../testcase-render.py report ToolsIllegalFixVersion > $WORKSPACE/jlint-test.xml
-
+./jira -s https://jira.jboss.org/jira logout
