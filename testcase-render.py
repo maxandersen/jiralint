@@ -1,8 +1,11 @@
 from xml.dom.minidom import Document
 
 def xstr(s):
-    return 'None' if s is None else str(s)
-
+    if s is None:
+        return 'None'
+    else:
+        return str(s)
+    
 def render(self, logger, jira_env, args, results):
     if jira_env.has_key('reportName'):
         reportName = jira_env['reportName']
