@@ -8,9 +8,6 @@ def xstr(s):
         return str(s)
     
 def render(self, logger, jira_env, args, results):
-    print "<!--"
-    pprint.pprint(jira_env)
-    print "-->"
     
     if jira_env.has_key('reportName'):
         reportName = jira_env['reportName']
