@@ -34,8 +34,8 @@ def render(self, logger, jira_env, args, results):
                 fixVersion += '_' + version['name']
 
             testcase = doc.createElement("testcase")
-            testcase.setAttribute("classname","test." + reportName)
-            testcase.setAttribute("name", v['key'] + xstr(fixVersion) + "." + xstr(v['assignee']))
+            testcase.setAttribute("classname", reportName)
+            testcase.setAttribute("name", reportName + "." + v['key'] + xstr(fixVersion) + "_" + xstr(v['assignee']))
             url = jira_env['server_url'] + '/browse/' + v['key']
 
        
