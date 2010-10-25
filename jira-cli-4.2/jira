@@ -32,7 +32,7 @@ global_user = None
 global_password = None
 global_render = None
 
-from hashlib import md5
+## from hashlib import md5
 import os.path
 import imp
 import traceback
@@ -45,7 +45,8 @@ def load_module(code_path):
 
             fin = open(code_path, 'rb')
 
-            return  imp.load_source(md5(code_path).hexdigest(), code_path, fin)
+            #         return  imp.load_source(md5(code_path).hexdigest(), code_path, fin)
+            return  imp.load_source(code_path, code_path, fin)
         finally:
             try: fin.close()
             except: pass
