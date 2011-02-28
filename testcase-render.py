@@ -1,4 +1,6 @@
 from xml.dom.minidom import Document
+import datetime
+from datetime import timedelta
 import pprint
 
 def xstr(s):
@@ -40,7 +42,10 @@ def render(self, logger, jira_env, args, results):
 
        
             error = doc.createElement("error")
-            error.setAttribute("message", url + " -> " + desc)
+
+            
+            lastupdate = datetime.datetime.now() - v['updated']
+            error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
 
             errortext = doc.createTextNode(v['key'] + ": " + v['summary'] + "(" + url + ")" )
             error.appendChild(errortext)
