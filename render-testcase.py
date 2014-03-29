@@ -1,5 +1,6 @@
 from urlparse import urlparse
-import requests
+import urllib
+import urllib2
 import yaml
 import json
 import sys
@@ -84,8 +85,17 @@ jiraserver = "https://issues.jboss.org"
 for report in reports:
     for name,fields in report.items():
         print("Running "  + name)
+        
+        
+        authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        authinfo.add_password(None, options.jiraserver, options.username, options.password)
+        handler = urllib2.HTTPBasicAuthHandler(authinfo)
+        myopener = urllib2.build_opener(handler)
+        opened = urllib2.install_opener(myopener)
+
         payload = {'jql': fields['jql'], 'maxResults' : 1000}
-        auth=(options.username,options.password)
-        json=requests.get(options.jiraserver +  "/rest/api/2/search", params=payload, auth=auth).json()
-        print("Generating " + name + " with " + str(len(json["issues"])) + " issues")
-        render(name + "-test.xml", fields['description'], json, json["issues"])
+        req = urllib2.Request(options.jiraserver +  "/rest/api/2/search?" + urllib.urlencode(payload))
+
+        data=json.load(urllib2.urlopen(req))
+        print("Generating " + name + " with " + str(len(data["issues"])) + " issues")
+        render(name + "-test.xml", fields['description'], data, data["issues"])
