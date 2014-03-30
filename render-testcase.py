@@ -47,9 +47,9 @@ def render(name, desc, jira_env, issues):
             error = doc.createElement("error")
 
             
-            lastupdate = datetime.datetime.now() - parse(fields['updated']).replace(tzinfo=None)
-            error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
-
+            #lastupdate = datetime.datetime.now() - parse(fields['updated']).replace(tzinfo=None)
+            #error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
+            error.setAttribute("message", url + " (last update: " + fields(lastupdate) + ") -> " + desc)
             errortext = doc.createTextNode(v['key'] + ": " + fields['summary'] + "(" + url + ")" )
             error.appendChild(errortext)
 
