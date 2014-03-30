@@ -96,7 +96,7 @@ if options.reportfile:
         
             authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
             authinfo.add_password(None, options.jiraserver, options.username, options.password)
-            handler = urllib2.HTTPBasicAuthHandler(autxhinfo)
+            handler = urllib2.HTTPBasicAuthHandler(authinfo)
             myopener = urllib2.build_opener(handler)
             opened = urllib2.install_opener(myopener)
 
