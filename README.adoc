@@ -6,9 +6,8 @@ render-testcase.py   takes a report.json to render jira query results into junit
 
 Steps to use it:
 
-1. Create a <reportname>.json file with the following format:
+. Create a <reportname>.json file with the following format:
 
-  ```
   [
   {
     "nofixversion": {
@@ -23,18 +22,18 @@ Steps to use it:
     }
   }
   ]
-  ```
+
++ 
+Each entry has a report name used for identifying its results and then a jql for the query and finally a description which is added to each jira "error" message.
   
-  Each entry has a report name used for identifying its results and then a jql for the query and finally a description which is added to each jira "error" message.
-  
-2. Test it by running:
+. Test it by running:
 
    ```
    $ python -u user -p secret -s jiraserver -r <reportname>.json
    ```
++
+Now for each report a -test.xml file will be created containing "test failures" for each jira matching the result.
 
-   Now for each report a -test.xml file will be created containing "test failures" for each jira matching the result.
-
-3. Setup a Jenkins build which executes the above script and enable junit reporting and you got automatic notification and tracking to help improve your jira content.
+. Setup a Jenkins build which executes the above script and enable junit reporting and you got automatic notification and tracking to help improve your jira content.
 
 Have fun! 
