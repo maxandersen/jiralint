@@ -73,21 +73,20 @@ def render(name, desc, jira_env, issues):
 
 
 
-usage = "usage: %prog -u <user> -p <password> \nGenerates junit test report based on issues returned from queries."
+usage = "usage: %prog -u <user> -p <password> -r <report.json>\nGenerates junit test report based on issues returned from queries."
 
 parser = OptionParser(usage)
 parser.add_option("-u", "--user", dest="username", help="jira username")
 parser.add_option("-p", "--pwd", dest="password", help="jira password")
 parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.jboss.org", help="Jira instance")
-
+parser.add_option("-r", "--report", dest="reportfile", default=None, help=".json file with list of queries to run")
 (options, args) = parser.parse_args()
 
-if not options.username or not options.password or not options.jiraserver:
-    parser.error("Need to specify all")
+if not options.username or not options.password:
+    parser.error("Missing username or password")
 
-reports = json.load(open("reports.json", 'r'))
+reports = json.load(open(options.reportfile, 'r'))
 
-jiraserver = "https://issues.jboss.org"
 for report in reports:
     for name,fields in report.items():
         print("Running "  + name)
@@ -95,7 +94,7 @@ for report in reports:
         
         authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
         authinfo.add_password(None, options.jiraserver, options.username, options.password)
-        handler = urllib2.HTTPBasicAuthHandler(authinfo)
+        handler = urllib2.HTTPBasicAuthHandler(autxhinfo)
         myopener = urllib2.build_opener(handler)
         opened = urllib2.install_opener(myopener)
 

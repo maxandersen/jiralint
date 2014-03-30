@@ -1,47 +1,40 @@
-Experiment where I'm trying to use Hudson for early warnings/errors in jiras.
+Experiment where I'm trying to use Jenkins for early warnings/error detection in jiras.
 
 README     	     this file
-jira-cli-4.2/ 	     python Jira Command line interface modified to have custom rendering and direct username/password settings.
-testcase-render.py   render function that exports junit.xml style for every jira found in a report
-jbosstools.sh        Script used for testing jbosstools jira filters
+render-testcase.py   takes a report.json to render jira query results into junit.xml test reports   
+*.json               reports used by JBoss Tools team for detecting stale/non-triaged/incorrect jiras
 
 Steps to use it:
 
-1. Create named filter(s) in your jira that mathces the jira's you
-   want to show up as test errors, i.e. I use "ToolsIllegalFixVersion"
-   which JQL is:
+1. Create a <reportname>.json file with the following format:
 
-  ((project = JBIDE and (fixVersion in ("3.1.x","3.2.x", "LATER") or
-  fixVersion is empty)) or (project = JBDS and (fixVersion in
-  ("3.0.x", "4.0.x", "LATER") or fixVersion is empty))) and resolution
-  = done and updatedDate >= "-90d"
+  ```
+  [
+  {
+    "nofixversion": {
+	"jql": "(project = JBIDE AND fixVersion is EMPTY AND createdDate <= -7d",
+        "description": "Issues have no fix version and was created 7 dags ago. Please triage."
+    }
+  },
+  {
+    "nocomponent": {
+      "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY",
+      "description": "Issue has no component - please triage and make sure it is put in the right component or set of components."
+    }
+  }
+  ]
+  ```
+  
+  Each entry has a report name used for identifying its results and then a jql for the query and finally a description which is added to each jira "error" message.
+  
+2. Test it by running:
 
-   Which basically shows all completed issues in JBIDE or JBDS which
-   fixVersion were not specified or an illegal fixVersion were used
-   (we use .x and LATER to designate "planned" issues).
+   ```
+   $ python -u user -p secret -s jiraserver -r <reportname>.json
+   ```
 
-2. Test the filter in jira web-ui and see it return results and now run this:
+   Now for each report a -test.xml file will be created containing "test failures" for each jira matching the result.
 
-   cd jira-cli-4.2/
-   ./jira -s ${JIRA_HOST} -u ${JIRA_USER} -p ${JIRA_PWD} report ${REPORT_NAME}
-
-   (remember to put proper values here for JIRA_* and REPORT_NAME)
-
-   If this give a list that matches what you see in the jira web-ui you got the core working.
-
-3. Setup a Hudson build which executes the following:
-
-   cd jira-cli-4.2/
-   ./jira -s ${JIRA_HOST} -u ${JIRA_USER} -p ${JIRA_PWD} -r ../testcase-render.py report ToolsIllegalFixVersion > $WORKSPACE/jiralint-test.xml
-
-   You should fill out the JIRA_* names or use the Masked Password and/or Build Parameters plugin in hudson to pass them in.
-
-   The difference here is that we use the testcase-render.py to get testcase output instead.
-
-4. Enable "Publish JUnit test result report" in the Hudson job and set it to include "**/*-test.xml so it matches the jiralint-test.xml file, i.e. "**/*-test.xml"
-
-5. Run the build
-
-Now you should get a failed build if there are any jiras matching your filter.
+3. Setup a Jenkins build which executes the above script and enable junit reporting and you got automatic notification and tracking to help improve your jira content.
 
 Have fun! 
