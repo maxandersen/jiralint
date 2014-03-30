@@ -39,16 +39,24 @@ def render(name, desc, jira_env, issues):
 
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname", name)
-            testcase.setAttribute("name", name + "." + v['key'] + xstr(fixVersion) + "_" + xstr(fields['assignee']))
+
+            if fields['assignee']:
+                who = fields['assignee']['name']
+            else:
+                who = "None"
+
+            jirakey = v['key']
+            
+            testcase.setAttribute("name", name + "." + jirakey + xstr(fixVersion) + "_" + who)
 
             o = urlparse(v['self'])
-            url = o.scheme + "://" + o.netloc + "/browse/" + v['key']
+            url = o.scheme + "://" + o.netloc + "/browse/" + jirakey
 
             error = doc.createElement("error")
 
             lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
             error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
-            errortext = doc.createTextNode(v['key'] + ": " + fields['summary'] + "(" + url + ")" )
+            errortext = doc.createTextNode(jirakey + ": " + fields['summary'] + "(" + url + ")" )
             error.appendChild(errortext)
 
             testcase.appendChild(error)
