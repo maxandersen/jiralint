@@ -47,7 +47,7 @@ def render(name, desc, jira_env, issues):
 
             jirakey = v['key']
             
-            testcase.setAttribute("name", name + "." + jirakey + xstr(fixVersion) + "_" + who)
+            testcase.setAttribute("name", jirakey + xstr(fixVersion) + "_" + who)
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jirakey
@@ -68,7 +68,7 @@ def render(name, desc, jira_env, issues):
         testsuite.appendChild(testcase)
         
     print('Writing to ' + name)
-    output = open(name, 'w')
+    output = open(name + "-test.xml", 'w')
     output.write(doc.toprettyxml(indent="  "))
 
 
@@ -104,4 +104,4 @@ for report in reports:
 
         data=json.load(urllib2.urlopen(req))
         print("Generating " + name + " with " + str(len(data["issues"])) + " issues")
-        render(name + "-test.xml", fields['description'], data, data["issues"])
+        render(name, fields['description'], data, data["issues"])
