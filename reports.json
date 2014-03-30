@@ -1,0 +1,14 @@
+[
+  {
+    "nofixversion": {
+      "jql": "project in (JBIDE,JBDS) AND fixVersion is EMPTY AND resolution is EMPTY",
+      "description": "Test description for a report with\nmultiple\nlines\n"
+    }
+  },
+  {
+    "nocomponents": {
+      "description": "Fix the component versions please!\n",
+      "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY"
+    }
+  }
+]
