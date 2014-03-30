@@ -77,7 +77,7 @@ parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.j
 if not options.username or not options.password or not options.jiraserver:
     parser.error("Need to specify all")
 
-reports = json.load(open("reports.yaml", 'r'))
+reports = json.load(open("reports.json", 'r'))
 
 jiraserver = "https://issues.jboss.org"
 for report in reports:
