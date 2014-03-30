@@ -85,22 +85,28 @@ parser.add_option("-r", "--report", dest="reportfile", default=None, help=".json
 if not options.username or not options.password:
     parser.error("Missing username or password")
 
-reports = json.load(open(options.reportfile, 'r'))
+if options.reportfile:
+    print "Using reports defined in " + options.reportfile
+    reports = json.load(open(options.reportfile, 'r'))
 
-for report in reports:
-    for name,fields in report.items():
-        print("Running "  + name)
+    for report in reports:
+        for name,fields in report.items():
+            print("Running "  + name)
         
         
-        authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        authinfo.add_password(None, options.jiraserver, options.username, options.password)
-        handler = urllib2.HTTPBasicAuthHandler(autxhinfo)
-        myopener = urllib2.build_opener(handler)
-        opened = urllib2.install_opener(myopener)
+            authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            authinfo.add_password(None, options.jiraserver, options.username, options.password)
+            handler = urllib2.HTTPBasicAuthHandler(autxhinfo)
+            myopener = urllib2.build_opener(handler)
+            opened = urllib2.install_opener(myopener)
 
-        payload = {'jql': fields['jql'], 'maxResults' : 1000}
-        req = urllib2.Request(options.jiraserver +  "/rest/api/2/search?" + urllib.urlencode(payload))
+            payload = {'jql': fields['jql'], 'maxResults' : 1000}
+            req = urllib2.Request(options.jiraserver +  "/rest/api/2/search?" + urllib.urlencode(payload))
 
-        data=json.load(urllib2.urlopen(req))
-        print("Generating " + name + " with " + str(len(data["issues"])) + " issues")
-        render(name, fields['description'], data, data["issues"])
+            data=json.load(urllib2.urlopen(req))
+            print("Generating " + name + " with " + str(len(data["issues"])) + " issues")
+            render(name, fields['description'], data, data["issues"])
+else:
+    print "Generating based on .json found on standard in"
+    data = json.load(sys.stdin)
+    render('stdin', 'Query from standard in.', data, data["issues"])
