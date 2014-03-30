@@ -46,10 +46,8 @@ def render(name, desc, jira_env, issues):
 
             error = doc.createElement("error")
 
-            
-            #lastupdate = datetime.datetime.now() - parse(fields['updated']).replace(tzinfo=None)
-            #error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
-            error.setAttribute("message", url + " (last update: " + fields(lastupdate) + ") -> " + desc)
+            lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
+            error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
             errortext = doc.createTextNode(v['key'] + ": " + fields['summary'] + "(" + url + ")" )
             error.appendChild(errortext)
 
@@ -79,7 +77,7 @@ parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.j
 if not options.username or not options.password or not options.jiraserver:
     parser.error("Need to specify all")
 
-reports = yaml.load(open("reports.yaml", 'r'))
+reports = json.load(open("reports.yaml", 'r'))
 
 jiraserver = "https://issues.jboss.org"
 for report in reports:
