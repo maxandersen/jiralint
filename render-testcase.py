@@ -1,12 +1,12 @@
 from urlparse import urlparse
 import urllib
 import urllib2
-##import yaml
+##import yaml  not on rhel4
 import json
 import sys
 import datetime
 from datetime import timedelta
-from dateutil.parser import parse
+## from dateutil.parser import parse not on rhel6
 import pprint
 from xml.dom.minidom import Document
 from optparse import OptionParser
