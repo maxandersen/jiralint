@@ -32,7 +32,7 @@ def render(name, desc, jira_env, issues):
             # For available field names, see the variables in
             # src/java/com/atlassian/jira/rpc/soap/beans/RemoteIssue.java 
             #logger.info('%s\t%s\t%s' % (v['key'], v['assignee'], v['summary']))
-            #  print v
+            # print fields['assignee']
             fixVersion = ""
             for version in fields['fixVersions']:
                 fixVersion += '_' + version['name']
@@ -46,16 +46,17 @@ def render(name, desc, jira_env, issues):
                 fixVersion = "." + fixVersion
 
             if fields['assignee']:
-                who = fields['assignee']['name']
+                whoEmail = fields['assignee']['emailAddress']
+                whoName  = fields['assignee']['name']
             else:
-                who = "nobody"
-
-            testcase = doc.createElement("testcase")
-            testcase.setAttribute("classname", who)
+                whoEmail = "nobody"
+                whoName = "nobody"
 
             jirakey = v['key']
-            
-            testcase.setAttribute("name", jirakey + "." + name + xstr(fixVersion))
+
+            testcase = doc.createElement("testcase")
+            testcase.setAttribute("classname", jirakey)
+            testcase.setAttribute("name", name + xstr(fixVersion) + "." + whoName)
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jirakey
@@ -63,9 +64,11 @@ def render(name, desc, jira_env, issues):
             error = doc.createElement("error")
 
             lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
-            error.setAttribute("message", "\n\n[" + who + "] " + name + " for " + jirakey)
+
+            error.setAttribute("message", "\n\n[" + whoEmail + "] " + name + " for " + jirakey)
+
             errortext = doc.createTextNode("\n\n" + url + "\nIssue: " + fields['summary'] + "\n" + 
-                "Assignee: " + who + "\n" + 
+                "Assignee: " + whoName + " <" + whoEmail + ">\n" +
                 "Error: " + name + " - " + desc + "\n"
                 "Last Update: " + str(lastupdate))
             error.appendChild(errortext)
