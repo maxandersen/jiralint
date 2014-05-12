@@ -15,7 +15,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 def xstr(s):
     if s is None:
-        return 'None'
+        return 'nobody'
     else:
         return str(s)
     
@@ -36,18 +36,26 @@ def render(name, desc, jira_env, issues):
             fixVersion = ""
             for version in fields['fixVersions']:
                 fixVersion += '_' + version['name']
-
-            testcase = doc.createElement("testcase")
-            testcase.setAttribute("classname", name)
+            fixVersion = fixVersion[1:]
+            if fixVersion == "":
+                if name == "nofixversion":
+                    fixVersion = ""
+                else:
+                    fixVersion=".nofixversion"
+            else:
+                fixVersion = "." + fixVersion
 
             if fields['assignee']:
                 who = fields['assignee']['name']
             else:
-                who = "None"
+                who = "nobody"
+
+            testcase = doc.createElement("testcase")
+            testcase.setAttribute("classname", who)
 
             jirakey = v['key']
             
-            testcase.setAttribute("name", jirakey + xstr(fixVersion) + "_" + who)
+            testcase.setAttribute("name", jirakey + "." + name + xstr(fixVersion))
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jirakey
@@ -55,8 +63,11 @@ def render(name, desc, jira_env, issues):
             error = doc.createElement("error")
 
             lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
-            error.setAttribute("message", url + " (last update: " + str(lastupdate) + ") -> " + desc)
-            errortext = doc.createTextNode(jirakey + ": " + fields['summary'] + "(" + url + ")" )
+            error.setAttribute("message", "\n\n[" + who + "] " + name + " for " + jirakey)
+            errortext = doc.createTextNode("\n\n" + url + "\nIssue: " + fields['summary'] + "\n" + 
+                "Assignee: " + who + "\n" + 
+                "Error: " + name + " - " + desc + "\n"
+                "Last Update: " + str(lastupdate))
             error.appendChild(errortext)
 
             testcase.appendChild(error)
