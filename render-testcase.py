@@ -67,10 +67,11 @@ def render(name, desc, jira_env, issues):
 
             error.setAttribute("message", "\n\n\n[" + whoEmail + "] " + name + " for " + jirakey)
 
-            errortext = doc.createTextNode("\n" + url + "\nIssue: " + fields['summary'] + "\n" + 
+            errortext = doc.createTextNode("\n" + url + "\n" + 
+                "Issue: " + fields['summary'] + "\n" + 
                 "Assignee: " + whoName + " <" + whoEmail + ">\n" +
-                "Error: " + name + " - " + desc + "\n----------------------------\n"
-                "Last Update: " + str(lastupdate))
+                "Error: " + name + " - " + desc + "\n" +
+                "Last Update: " + str(lastupdate) + "\n----------------------------\n\n")
             error.appendChild(errortext)
 
             testcase.appendChild(error)
