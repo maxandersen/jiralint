@@ -1,20 +1,20 @@
 [
   {
     "illegalfixversion": {
-	"jql": "(project = JBIDE AND (fixVersion in ('3.1.x', '3.2.x', '4.0.x', '4.1.x', '4.2.x', LATER) OR fixVersion is EMPTY) OR project = JBDS AND (fixVersion in ('3.0.x', '4.0.x', '6.0.x', '7.1.x', '8.0.x', LATER) OR fixVersion is EMPTY)) AND resolution = done AND updatedDate >= -365d",
-        "description": "Issue have been resolved with an illegal fix version, i.e. an .x version, LATER or no fix version at all. This means it will not be shown in the right release notes so neither developers or users can see where things happend. Please adjust the issue so it correctly states the proper fix version! Thank you! See http://bit.ly/aTUeGq for how to track down right fix versions. "
+      "jql": "(project = JBIDE AND (fixVersion in ('3.1.x', '3.2.x', '4.0.x', '4.1.x', '4.2.x', LATER) OR fixVersion is EMPTY) OR project = JBDS AND (fixVersion in ('3.0.x', '4.0.x', '6.0.x', '7.1.x', '8.0.x', LATER) OR fixVersion is EMPTY)) AND resolution = done AND updatedDate >= -365d",
+      "description": "Please set a valid fix version - cannot be blank, LATER, or #.#.x. See http://bit.ly/aTUeGq for help. "
     }
   },
   {
     "nofixversion": {
       "jql": "project in (JBIDE,JBDS) AND fixVersion is EMPTY AND resolution is EMPTY and createdDate <= -7d",
-      "description": "This issue is unresolved and have existed for 7+ days and has no fix version set. Please triage it."
+      "description": "Please set a fix version for this issue."
     }
   },
   {
     "nocomponent": {
-      "description": "Issue has no component - please triage and make sure it is put in the right component or set of components.\n",
-      "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY"
+      "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY",
+      "description": "Please assign this issue to one or more components."
     }
   }
 ]
