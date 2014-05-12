@@ -65,11 +65,11 @@ def render(name, desc, jira_env, issues):
 
             lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
 
-            error.setAttribute("message", "\n\n[" + whoEmail + "] " + name + " for " + jirakey)
+            error.setAttribute("message", "\n\n\n[" + whoEmail + "] " + name + " for " + jirakey)
 
-            errortext = doc.createTextNode("\n\n" + url + "\nIssue: " + fields['summary'] + "\n" + 
+            errortext = doc.createTextNode("\n" + url + "\nIssue: " + fields['summary'] + "\n" + 
                 "Assignee: " + whoName + " <" + whoEmail + ">\n" +
-                "Error: " + name + " - " + desc + "\n"
+                "Error: " + name + " - " + desc + "\n----------------------------\n"
                 "Last Update: " + str(lastupdate))
             error.appendChild(errortext)
 
