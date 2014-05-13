@@ -1,20 +1,20 @@
 [
   {
-    "illegalfixversion": {
+    "Illegal fix version": {
       "jql": "(project = JBIDE AND (fixVersion in ('3.1.x', '3.2.x', '4.0.x', '4.1.x', '4.2.x', LATER) OR fixVersion is EMPTY) OR project = JBDS AND (fixVersion in ('3.0.x', '4.0.x', '6.0.x', '7.1.x', '8.0.x', LATER) OR fixVersion is EMPTY)) AND resolution = done AND updatedDate >= -365d",
-      "description": "Please set a valid fix version - cannot be blank, LATER, or #.#.x. See http://bit.ly/aTUeGq for help. "
+      "description": "please set a valid fix version - cannot be blank, LATER, or #.#.x. See http://bit.ly/aTUeGq for help. "
     }
   },
   {
-    "nofixversion": {
+    "No fix version": {
       "jql": "project in (JBIDE,JBDS) AND fixVersion is EMPTY AND resolution is EMPTY and createdDate <= -7d",
-      "description": "Please set a fix version for this issue."
+      "description": "please set a fix version for this issue."
     }
   },
   {
-    "nocomponent": {
+    "No component": {
       "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY",
-      "description": "Please assign this issue to one or more components."
+      "description": "please assign this issue to one or more components."
     }
   }
 ]
