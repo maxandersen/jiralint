@@ -19,7 +19,7 @@ def xstr(s):
     else:
         return str(s)
     
-def render(name, desc, jira_env, issues):
+def render(issueType, issueDesc, jira_env, issues):
         
     doc = Document()
     testsuite = doc.createElement("testsuite")
@@ -38,16 +38,16 @@ def render(name, desc, jira_env, issues):
                 fixVersion += '_' + version['name']
             fixVersion = fixVersion[1:]
             if fixVersion == "":
-                if name == "nofixversion":
+                if issueType == "nofixversion":
                     fixVersion = ""
                 else:
                     fixVersion=".nofixversion"
             else:
-                fixVersion = "." + fixVersion
+                fixVersion = "." + xstr(fixVersion)
 
             if fields['assignee']:
-                whoEmail = fields['assignee']['emailAddress']
-                whoName  = fields['assignee']['name']
+                whoEmail = str(fields['assignee']['emailAddress'])
+                whoName  = str(fields['assignee']['name'])
             else:
                 whoEmail = "external-exadel-list@redhat.com"
                 whoName = "nobody"
@@ -56,7 +56,7 @@ def render(name, desc, jira_env, issues):
 
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname", jirakey)
-            testcase.setAttribute("name", name + xstr(fixVersion) + "." + whoName)
+            testcase.setAttribute("name", issueType + xstr(fixVersion) + "." + whoName)
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jirakey
@@ -65,25 +65,25 @@ def render(name, desc, jira_env, issues):
 
             lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
 
-            error.setAttribute("message", "\n* [" + whoEmail + "] " + name + " for " + jirakey)
+            error.setAttribute("message", "\n* [" + whoEmail + "] " + issueType + " for " + jirakey)
 
-            errortext = doc.createTextNode("\n" + url + "\n" + 
-                "Issue: " + fields['summary'] + "\n" + 
+            errortext = doc.createTextNode("\n" + url + "\n" +
+                "Issue: " + fields['summary'] + "\n" +
                 "Assignee: " + whoName + " <" + whoEmail + ">\n" +
-                "Error: " + name + " - " + desc + "\n" +
-                "Last Update: " + str(lastupdate) + "\n----------------------------\n\n")
+                "Error: " + issueType + " - " + issueDesc + "\n" +
+                "Last Update: " + str(lastupdate) + "\n\n----------------------------\n\n")
             error.appendChild(errortext)
 
             testcase.appendChild(error)
             testsuite.appendChild(testcase)
     else:
         testcase = doc.createElement("testcase")
-        testcase.setAttribute("classname", name)
+        testcase.setAttribute("classname", issueType)
         testcase.setAttribute("name", "found.noissues")
         testsuite.appendChild(testcase)
-        
-    print('Writing to ' + name)
-    output = open(name.lower().replace(" ","") + "-test.xml", 'w')
+ 
+    print('Write to ' + issueType.lower().replace(" ","") + "-test.xml")
+    output = open(issueType.lower().replace(" ","") + "-test.xml", 'w')
     output.write(doc.toprettyxml(indent="  "))
 
 
@@ -105,10 +105,8 @@ if options.reportfile:
     reports = json.load(open(options.reportfile, 'r'))
 
     for report in reports:
-        for name,fields in report.items():
-            print("Running "  + name)
-        
-        
+        for issueType,fields in report.items():
+            print("Check for '"  + issueType.lower() + "'")
             authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
             authinfo.add_password(None, options.jiraserver, options.username, options.password)
             handler = urllib2.HTTPBasicAuthHandler(authinfo)
@@ -119,8 +117,11 @@ if options.reportfile:
             req = urllib2.Request(options.jiraserver +  "/rest/api/2/search?" + urllib.urlencode(payload))
 
             data=json.load(urllib2.urlopen(req))
-            print("Generating " + name + " with " + str(len(data["issues"])) + " issues")
-            render(name, fields['description'], data, data["issues"])
+            if len(data["issues"]) > 0:
+                print(str(len(data["issues"])) + " issues found with '" + issueType.lower() + "'")
+                render(issueType, fields['description'], data, data["issues"])
+            else:
+                print "No issues found with '" + issueType.lower() + "'"
 else:
     print "Generating based on .json found on standard in"
     data = json.load(sys.stdin)
