@@ -29,9 +29,9 @@ def mailsend (fromEmailAddress, toEmailAddress, subject, message):
         'From: ' + fromEmailAddress + '\n' + \
         'Subject: ACTION REQUIRED: ' + subject + '\n\n'
     msg = header + '\n' + message
-    print msg
-    #server.sendmail(fromEmailAddress, toEmailAddress, msg)
-    #server.close()
+    #print msg
+    server.sendmail(fromEmailAddress, toEmailAddress, msg)
+    server.close()
 
 def render(issueType, issueDesc, jira_env, issues, fromEmailAddress, toEmailAddress):
         
@@ -133,7 +133,7 @@ if options.reportfile:
 
     for report in reports:
         for issueType,fields in report.items():
-            print("Running check for '"  + issueType.lower() + "'")        
+            print("Check for '"  + issueType.lower() + "'")        
             authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
             authinfo.add_password(None, options.jiraserver, options.username, options.password)
             handler = urllib2.HTTPBasicAuthHandler(authinfo)
