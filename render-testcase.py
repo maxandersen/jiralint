@@ -49,7 +49,7 @@ def render(name, desc, jira_env, issues):
                 whoEmail = fields['assignee']['emailAddress']
                 whoName  = fields['assignee']['name']
             else:
-                whoEmail = "nobody"
+                whoEmail = "external-exadel-list@redhat.com"
                 whoName = "nobody"
 
             jirakey = v['key']
@@ -83,7 +83,7 @@ def render(name, desc, jira_env, issues):
         testsuite.appendChild(testcase)
         
     print('Writing to ' + name)
-    output = open(name + "-test.xml", 'w')
+    output = open(name.lower().replace(" ","") + "-test.xml", 'w')
     output.write(doc.toprettyxml(indent="  "))
 
 
