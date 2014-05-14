@@ -53,10 +53,16 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
         for i, v in enumerate(issues):
             
             fields = v['fields']
+            jira_key = v['key']
+
             # For available field names, see the variables in
             # src/java/com/atlassian/jira/rpc/soap/beans/RemoteIssue.java 
             #logger.info('%s\t%s\t%s' % (v['key'], v['assignee'], v['summary']))
             # print fields['components']
+
+            component_details = []
+            component_lead_name = ""
+            component_lead_email = ""
             for component in fields['components']:
                 # print component['id']
                 # https://issues.jboss.org/rest/api/2/component/12311294
@@ -76,6 +82,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                         component_lead_email = str(issue['fields']['assignee']['emailAddress'])
                         email_addresses[component_lead_name] = component_lead_email
                         #print "Set:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
+                component_details.append({component_lead_name,component_lead_email})
             fix_version = ""
             for version in fields['fixVersions']:
                 fix_version += '_' + version['name']
@@ -88,6 +95,8 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             else:
                 fix_version = "." + xstr(fix_version)
 
+            assignee_name = "nobody"
+            assignee_email = str(options.unassignedjiraemail)
             if fields['assignee']:
                 assignee_name  = str(fields['assignee']['name'])
                 if assignee_name in email_addresses:
@@ -97,27 +106,24 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     assignee_email = str(fields['assignee']['emailAddress'])
                     email_addresses[assignee_name] = assignee_email
                     #print "Set:0 email_addresses['" + assignee_name + "'] = " + assignee_email
-            elif component_lead_email:
-                assignee_email = component_lead_email
-                assignee_name = component_lead_name
-            else:
-                assignee_email = str(options.unassignedjiraemail)
-                assignee_name = "nobody"
-
-            jira_number = v['key']
+            # TODO handle array of components
+            elif component_details:
+                print jira_key + ": " + str(component_details)
+                # assignee_email = component_lead_email
+                # assignee_name = component_lead_name
 
             testcase = doc.createElement("testcase")
-            testcase.setAttribute("classname", jira_number)
+            testcase.setAttribute("classname", jira_key)
             testcase.setAttribute("name", issue_type.lower().replace(" ","") + xstr(fix_version) + "." + assignee_name)
 
             o = urlparse(v['self'])
-            url = o.scheme + "://" + o.netloc + "/browse/" + jira_number
+            url = o.scheme + "://" + o.netloc + "/browse/" + jira_key
 
             error = doc.createElement("error")
 
             lastupdate = datetime.datetime.now() - datetime.datetime.strptime(fields['updated'][:-5], "%Y-%m-%dT%H:%M:%S.%f" ).replace(tzinfo=None)
 
-            error.setAttribute("message", "\n* [" + assignee_email + "] " + issue_type + " for " + jira_number)
+            error.setAttribute("message", "\n* [" + assignee_email + "] " + issue_type + " for " + jira_key)
 
 
             error_text = "\n" + url + "\n" + \
@@ -134,12 +140,12 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             testcase.appendChild(error)
             testsuite.appendChild(testcase)
 
-            subject = "\n* " + issue_type + " for " + jira_number
+            subject = "\n* " + issue_type + " for " + jira_key
   
             # load email content into a dict(), indexed by email recipient & JIRA
             if not assignee_email in emails_to_send:
                 emails_to_send[assignee_email] = {}
-            emails_to_send[assignee_email][jira_number] = {subject + '\n' + error_text}
+            emails_to_send[assignee_email][jira_key] = {subject + '\n' + error_text}
 
     else:
         testcase = doc.createElement("testcase")
@@ -162,9 +168,9 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                 print entry
                 log = log + entry + "\n\n"
                 message = ''
-                for j, jira_number in enumerate(emails_to_send[assignee_email]):
-                    message = message + emails_to_send[assignee_email][jira_number]
-                    log = log + emails_to_send[assignee_email][jira_number]
+                for j, jira_key in enumerate(emails_to_send[assignee_email]):
+                    message = message + emails_to_send[assignee_email][jira_key]
+                    log = log + emails_to_send[assignee_email][jira_key]
 
                 message = "This is a mail based on results from a query (see bottom of email) to locate stalled/invalid jiras. Please fix them. Thanks!\n\n " + message
                 message = message + "\n\nQuery used: "  + options.jiraserver + "/issues/?jql=" + urllib.quote_plus(jql) + "\n"
