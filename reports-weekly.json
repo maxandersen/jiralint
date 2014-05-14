@@ -2,13 +2,13 @@
   {
     "Illegal fix version": {
       "jql": "(project = JBIDE AND (fixVersion in ('3.1.x', '3.2.x', '4.0.x', '4.1.x', '4.2.x', LATER) OR fixVersion is EMPTY) OR project = JBDS AND (fixVersion in ('3.0.x', '4.0.x', '6.0.x', '7.1.x', '8.0.x', LATER) OR fixVersion is EMPTY)) AND resolution = done AND updatedDate >= -720d",
-      "description": "please set a valid fix version - cannot be blank, LATER, or #.#.x. See http://bit.ly/aTUeGq for help. "
+      "description": "please set a valid fix version for this resolved/closed issue - cannot be blank, LATER, or #.#.x. See http://bit.ly/aTUeGq for help. "
     }
   },
   {
     "No fix version": {
       "jql": "project in (JBIDE,JBDS) AND fixVersion is EMPTY AND resolution is EMPTY and createdDate <= -7d",
-      "description": "please triage this issue that are more than 7 days old."
+      "description": "please triage this issue - it is more than 7 days old and has no fix version or assignee."
     }
   },
   {
