@@ -31,8 +31,17 @@ def mailsend (smtphost, from_email, to_email, subject, message):
     server.sendmail(from_email, to_email, msg)
     server.close()
 
-    
-def render(issue_type, issue_description, jira_env, issues, jql, options):
+def jiraquery (options, url):
+    authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
+    authinfo.add_password(None, options.jiraserver, options.username, options.password)
+    handler = urllib2.HTTPBasicAuthHandler(authinfo)
+    myopener = urllib2.build_opener(handler)
+    opened = urllib2.install_opener(myopener)
+    # print options.jiraserver + url
+    req = urllib2.Request(options.jiraserver +  url)
+    return json.load(urllib2.urlopen(req))
+
+def render(issue_type, issue_description, jira_env, issues, jql, options, email_addresses):
         
     doc = Document()
     testsuite = doc.createElement("testsuite")
@@ -47,13 +56,32 @@ def render(issue_type, issue_description, jira_env, issues, jql, options):
             # For available field names, see the variables in
             # src/java/com/atlassian/jira/rpc/soap/beans/RemoteIssue.java 
             #logger.info('%s\t%s\t%s' % (v['key'], v['assignee'], v['summary']))
-            # print fields['assignee']
+            # print fields['components']
+            for component in fields['components']:
+                # print component['id']
+                # https://issues.jboss.org/rest/api/2/component/12311294
+                component_data = jiraquery(options, "/rest/api/2/component/" + component['id'])
+                component_name = str(component_data['name'])
+                component_lead_name = str(component_data['lead']['name'])
+                if component_lead_name in email_addresses:
+                    component_lead_email = email_addresses[component_lead_name]
+                    #print "Get:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
+                elif component_lead_name:
+                    # print component_lead_name
+                    # https://issues.jboss.org/rest/api/2/user?username=ldimaggio requires auth and fails with 401, but 
+                    # https://issues.jboss.org/rest/api/2/search?jql=%28assignee=ldimaggio%29&maxResults=1 requires no auth
+                    payload = {'jql': '(assignee=' + component_lead_name + ')', 'maxResults' : 1}
+                    lead_data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
+                    for issue in lead_data['issues']:
+                        component_lead_email = str(issue['fields']['assignee']['emailAddress'])
+                        email_addresses[component_lead_name] = component_lead_email
+                        #print "Set:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
             fix_version = ""
             for version in fields['fixVersions']:
                 fix_version += '_' + version['name']
             fix_version = fix_version[1:]
             if fix_version == "":
-                if issue_type == "nofixversion":
+                if issue_type == "No fix version":
                     fix_version = ""
                 else:
                     fix_version=".nofixversion"
@@ -61,8 +89,17 @@ def render(issue_type, issue_description, jira_env, issues, jql, options):
                 fix_version = "." + xstr(fix_version)
 
             if fields['assignee']:
-                assignee_email = str(fields['assignee']['emailAddress'])
                 assignee_name  = str(fields['assignee']['name'])
+                if assignee_name in email_addresses:
+                    assignee_email = email_addresses[assignee_name]
+                    #print "Get:0 email_addresses['" + assignee_name + "'] = " + assignee_email
+                else:
+                    assignee_email = str(fields['assignee']['emailAddress'])
+                    email_addresses[assignee_name] = assignee_email
+                    #print "Set:0 email_addresses['" + assignee_name + "'] = " + assignee_email
+            elif component_lead_email:
+                assignee_email = component_lead_email
+                assignee_name = component_lead_name
             else:
                 assignee_email = str(options.unassignedjiraemail)
                 assignee_name = "nobody"
@@ -71,7 +108,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options):
 
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname", jira_number)
-            testcase.setAttribute("name", issue_type + xstr(fix_version) + "." + assignee_name)
+            testcase.setAttribute("name", issue_type.lower().replace(" ","") + xstr(fix_version) + "." + assignee_name)
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jira_number
@@ -86,7 +123,9 @@ def render(issue_type, issue_description, jira_env, issues, jql, options):
             error_text = "\n" + url + "\n" + \
                 "Summary: " + fields['summary'] + "\n\n" + \
                 "Assignee: " + assignee_name + " <" + assignee_email + ">\n" + \
+                "Lead: " + component_lead_name + " <" + component_lead_email + ">\n" + \
                 "Problem: " + issue_type + " - " + issue_description + "\n" + \
+                "Component: " + component_name + "\n" + \
                 "Last Update: " + str(lastupdate) + "\n\n----------------------------\n\n"
 
             error_text_node = doc.createTextNode(error_text)
@@ -100,7 +139,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options):
             # load email content into a dict(), indexed by email recipient & JIRA
             if not assignee_email in emails_to_send:
                 emails_to_send[assignee_email] = {}
-            emails_to_send[assignee_email][jira_number] = subject + '\n' + error_text
+            emails_to_send[assignee_email][jira_number] = {subject + '\n' + error_text}
 
     else:
         testcase = doc.createElement("testcase")
@@ -137,6 +176,8 @@ def render(issue_type, issue_description, jira_env, issues, jql, options):
         output = open(issue_type.lower().replace(" ","") + ".log", 'w')
         output.write(log)
 
+    return email_addresses
+
 usage = "usage: %prog -u <user> -p <password> -r <report.json>\nGenerates junit test report based on issues returned from queries."
 
 parser = OptionParser(usage)
@@ -160,26 +201,18 @@ if options.reportfile:
     print "Using reports defined in " + options.reportfile
     reports = json.load(open(options.reportfile, 'r'))
 
+    # store an array of username : email_address we can use as a lookup table
+    email_addresses = {}
+
     for report in reports:
         for issue_type,fields in report.items():
             print("Check for '"  + issue_type.lower() + "'")
-            authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
-            authinfo.add_password(None, options.jiraserver, options.username, options.password)
-            handler = urllib2.HTTPBasicAuthHandler(authinfo)
-            myopener = urllib2.build_opener(handler)
-            opened = urllib2.install_opener(myopener)
-
             payload = {'jql': fields['jql'], 'maxResults' : 1000}
-            req = urllib2.Request(options.jiraserver +  "/rest/api/2/search?" + urllib.urlencode(payload))
-
-            data=json.load(urllib2.urlopen(req))
-            if len(data["issues"]) > 0:
-                print(str(len(data["issues"])) + " issues found with '" + issue_type.lower() + "'")
-            else:
-                print "No issues found with '" + issue_type.lower() + "'"
-            render(issue_type, fields['description'], data, data["issues"], fields['jql'], options)
+            data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
+            print(str(len(data['issues'])) + " issues found with '" + issue_type.lower() + "'")
+            email_addresses = render(issue_type, fields['description'], data, data['issues'], fields['jql'], options, email_addresses)
 else:
     print "Generating based on .json found on standard in"
     data = json.load(sys.stdin)
-    render('stdin', 'Query from standard in.', data, data["issues"], None, options)
+    email_addresses = render('stdin', 'Query from standard in.', data, data['issues'], None, options, email_addresses)
 
