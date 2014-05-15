@@ -20,15 +20,22 @@ def xstr(s):
     else:
         return str(s)
 
+def email_array_to_string(email_array):
+    email_string = ""
+    for name in email_array:
+        email_string = email_string + (", " if email_string else "") + name + " <" + email_array[name] + ">"
+    return email_string
+
 # thanks to http://guidetoprogramming.com/joomla153/python-scripts/22-send-email-from-python
-def mailsend (smtphost, from_email, to_email, subject, message):
+def mailsend (smtphost, from_email, to_email, subject, message, recipients_list):
     server = smtplib.SMTP(smtphost, 25)
-    header = 'To: ' + to_email + '\n' + \
+
+    header = 'To: ' + recipients_list + '\n' + \
         'From: ' + from_email + '\n' + \
         'Subject: ACTION REQUIRED: ' + subject + '\n\n'
     msg = header + '\n' + message
     #print msg
-    server.sendmail(from_email, to_email, msg)
+    server.sendmail(from_email, recipients_list, msg)
     server.close()
 
 def jiraquery (options, url):
@@ -82,7 +89,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                         component_lead_email = str(issue['fields']['assignee']['emailAddress'])
                         email_addresses[component_lead_name] = component_lead_email
                         #print "Set:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
-                component_details.append({component_lead_name,component_lead_email})
+                component_details.append({'name': component_name, 'lead': component_lead_name, 'email': component_lead_email})
             fix_version = ""
             for version in fields['fixVersions']:
                 fix_version += '_' + version['name']
@@ -95,22 +102,28 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             else:
                 fix_version = "." + xstr(fix_version)
 
-            assignee_name = "nobody"
+            recipients = {}
+            assignees = {}
+            assignee_name = "Nobody"
             assignee_email = str(options.unassignedjiraemail)
             if fields['assignee']:
-                assignee_name  = str(fields['assignee']['name'])
-                if assignee_name in email_addresses:
-                    assignee_email = email_addresses[assignee_name]
-                    #print "Get:0 email_addresses['" + assignee_name + "'] = " + assignee_email
-                else:
-                    assignee_email = str(fields['assignee']['emailAddress'])
+                assignee_name = str(fields['assignee']['name'])
+                assignee_email = str(fields['assignee']['emailAddress'])
+                assignees[assignee_name] = assignee_email
+                recipients[assignee_name] = assignee_email
+                if not assignee_name in email_addresses:
                     email_addresses[assignee_name] = assignee_email
-                    #print "Set:0 email_addresses['" + assignee_name + "'] = " + assignee_email
+
             # TODO handle array of components
             elif component_details:
-                print jira_key + ": " + str(component_details)
-                # assignee_email = component_lead_email
-                # assignee_name = component_lead_name
+                for component_detail in component_details:
+                    # print component_detail
+                    recipients[component_detail['lead']] = component_detail['email']
+            else:
+                # default assignee - send to mailing list if no component set
+                recipients["Nobody"] = str(options.unassignedjiraemail)
+
+            # print recipients
 
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname", jira_key)
@@ -125,13 +138,23 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
 
             error.setAttribute("message", "\n* [" + assignee_email + "] " + issue_type + " for " + jira_key)
 
+            component_name = ""
+            lead_info = ""
+            assignee_info = ""
+            if component_details:
+                for component_detail in component_details:
+                    component_name = component_name + (", " if component_name else "") + component_detail['name']
+                    lead_info = lead_info + (", " if lead_info else "") + component_detail['lead'] + " <" + component_detail['email'] + ">"
+
+            assignee_info = email_array_to_string(assignees)
+            # print assignee_info
 
             error_text = "\n" + url + "\n" + \
                 "Summary: " + fields['summary'] + "\n\n" + \
-                "Assignee: " + assignee_name + " <" + assignee_email + ">\n" + \
-                "Lead: " + component_lead_name + " <" + component_lead_email + ">\n" + \
+                ("Assignee(s): " + assignee_info if assignee_info else "Assignee: None set - please fix.") + "\n" + \
+                ("Lead(s): " + lead_info + "\n" if lead_info else "") + \
+                ("Component(s): " + component_name if component_name else "Component: None set - please fix.") + "\n" + \
                 "Problem: " + issue_type + " - " + issue_description + "\n" + \
-                "Component: " + component_name + "\n" + \
                 "Last Update: " + str(lastupdate) + "\n\n----------------------------\n\n"
 
             error_text_node = doc.createTextNode(error_text)
@@ -143,9 +166,11 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             subject = "\n* " + issue_type + " for " + jira_key
   
             # load email content into a dict(), indexed by email recipient & JIRA
-            if not assignee_email in emails_to_send:
-                emails_to_send[assignee_email] = {}
-            emails_to_send[assignee_email][jira_key] = {subject + '\n' + error_text}
+            recipient_list = email_array_to_string(recipients)
+            if not recipient_list in emails_to_send:
+                emails_to_send[recipient_list] = {}
+            emails_to_send[recipient_list][jira_key] = {'message': subject + '\n' + error_text, 'recipients': recipient_list}
+            # print emails_to_send[recipient_list][jira_key]
 
     else:
         testcase = doc.createElement("testcase")
@@ -169,14 +194,21 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                 log = log + entry + "\n\n"
                 message = ''
                 for j, jira_key in enumerate(emails_to_send[assignee_email]):
-                    message = message + emails_to_send[assignee_email][jira_key]
-                    log = log + emails_to_send[assignee_email][jira_key]
+                    message = message + emails_to_send[assignee_email][jira_key]['message']
+                    log = log + emails_to_send[assignee_email][jira_key]['message']
+                    # print emails_to_send[assignee_email][jira_key]['recipients']
 
-                message = "This is a mail based on results from a query (see bottom of email) to locate stalled/invalid jiras. Please fix them. Thanks!\n\n " + message
+                # wrap generated message w/ header and footer
+                message = "This email is the result of a query to locate stalled/invalid jiras. Please fix them. Thanks!\n\n " + message
                 message = message + "\n\nQuery used: "  + options.jiraserver + "/issues/?jql=" + urllib.quote_plus(jql) + "\n"
                 # send to yourself w/ --toemail override, or else send to actual recipient
                 # note: python uses `value if condition else otherValue`, which is NOT the same as `condition ? value : otherValue`
-                mailsend (options.smtphost, options.fromemail, (options.toemail if options.toemail else assignee_email), problem_count + ' issue' + ('s' if len(emails_to_send[assignee_email]) > 1 else '') + ' with ' + issue_type.lower(), message)
+                mailsend (options.smtphost, 
+                    options.fromemail, 
+                    (options.toemail if options.toemail else assignee_email), 
+                    problem_count + ' issue' + ('s' if len(emails_to_send[assignee_email]) > 1 else '') + ' with ' + issue_type.lower(), 
+                    message,
+                    emails_to_send[assignee_email][jira_key]['recipients'])
     
     if log:
         output = open(issue_type.lower().replace(" ","") + ".log", 'w')
@@ -190,9 +222,10 @@ parser = OptionParser(usage)
 parser.add_option("-u", "--user", dest="username", help="jira username")
 parser.add_option("-p", "--pwd", dest="password", help="jira password")
 parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.jboss.org", help="Jira instance")
+parser.add_option("-l", "--limit", dest="maxresults", default=200, help="maximum number of results to return from json queries (default 200)")
 parser.add_option("-r", "--report", dest="reportfile", default=None, help=".json file with list of queries to run")
 parser.add_option("-f", "--fromemail", dest="fromemail", default=None, help="email address from which to send mail; if omitted, no mail will be sent")
-parser.add_option("-t", "--toemail", dest="toemail", default=None, help="email address to which to send mail; if omitted, send to actual JIRA assignees")
+parser.add_option("-t", "--toemail", dest="toemail", default=None, help="email address override to which to send all mail; if omitted, send to actual JIRA assignees")
 parser.add_option("-n", "--unassignedjiraemail", dest="unassignedjiraemail", default=None, help="email to use for unassigned JIRAs; required if fromemail is specified")
 parser.add_option("-m", "--smtphost", dest="smtphost", default=None, help="smtp host to use; required if fromemail is specified")
 
@@ -213,7 +246,7 @@ if options.reportfile:
     for report in reports:
         for issue_type,fields in report.items():
             print("Check for '"  + issue_type.lower() + "'")
-            payload = {'jql': fields['jql'], 'maxResults' : 1000}
+            payload = {'jql': fields['jql'], 'maxResults' : options.maxresults}
             data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
             print(str(len(data['issues'])) + " issues found with '" + issue_type.lower() + "'")
             email_addresses = render(issue_type, fields['description'], data, data['issues'], fields['jql'], options, email_addresses)
