@@ -8,7 +8,7 @@
   {
     "No fix version": {
       "jql": "project in (JBIDE,JBDS) AND fixVersion is EMPTY AND resolution is EMPTY and createdDate <= -7d",
-      "description": "please triage this issue - it is more than 7 days old and has no fix version or assignee."
+      "description": "please triage this issue - it is more than 7 days old and has no fix version."
     }
   },
   {
