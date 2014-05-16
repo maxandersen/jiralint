@@ -29,15 +29,17 @@ def email_array_to_string(email_array):
     return email_string
 
 # thanks to http://guidetoprogramming.com/joomla153/python-scripts/22-send-email-from-python
-def mailsend (smtphost, from_email, to_email, subject, message, recipients_list):
+def mailsend (smtphost, from_email, to_email, subject, message, recipients_list, options):
     server = smtplib.SMTP(smtphost, 25)
 
     header = 'To: ' + recipients_list + '\n' + \
         'From: ' + from_email + '\n' + \
         'Subject: ACTION REQUIRED: ' + subject + '\n\n'
     msg = header + '\n' + message
-    #print msg
-    server.sendmail(from_email, recipients_list, msg)
+    if options.verbose:
+        print msg
+    if options.dryrun is None:
+        server.sendmail(from_email, recipients_list, msg)
     server.close()
 
 def jiraquery (options, url):
@@ -51,7 +53,7 @@ def jiraquery (options, url):
     req = urllib2.Request(options.jiraserver +  url)
     return json.load(urllib2.urlopen(req))
 
-def render(issue_type, issue_description, jira_env, issues, jql, options, email_addresses,compnents):
+def render(issue_type, issue_description, jira_env, issues, jql, options, email_addresses, components):
         
     doc = Document()
     testsuite = doc.createElement("testsuite")
@@ -76,10 +78,10 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             for component in fields['components']:
                 # print component['id']
                 # https://issues.jboss.org/rest/api/2/component/12311294
-                if component['id'] in  components:
+                if component['id'] in components:
                     component_data = components[component['id']]
                 else:
-                    print 'Getting info about component: ' + component['name']
+                    # print 'Query ' + component['name'] + ' component lead'
                     component_data = jiraquery(options, "/rest/api/2/component/" + component['id'])
                     components[component['id']] = component_data
                     
@@ -92,7 +94,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     # print component_lead_name
                     # https://issues.jboss.org/rest/api/2/user?username=ldimaggio requires auth and fails with 401, but 
                     # https://issues.jboss.org/rest/api/2/search?jql=%28assignee=ldimaggio%29&maxResults=1 requires no auth
-                    print "Getting compnent lead email: " + component_lead_name
+                    #print "Get component lead email: " + component_lead_name
                     payload = {'jql': '(assignee=' + component_lead_name + ')', 'maxResults' : 1}
                     lead_data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
                     for issue in lead_data['issues']:
@@ -175,12 +177,12 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
 
             subject = "\n* " + issue_type + " for " + jira_key
   
-            # load email content into a dict(), indexed by email recipient & JIRA
-            recipient_list = email_array_to_string(recipients)
-            if not recipient_list in emails_to_send:
-                emails_to_send[recipient_list] = {}
-            emails_to_send[recipient_list][jira_key] = {'message': subject + '\n' + error_text, 'recipients': recipient_list}
-            # print emails_to_send[recipient_list][jira_key]
+            # load email content into a dict(), indexed by email recipient & JIRA; for issues w/ more than one component, each component lead will get an email
+            for name in recipients:
+                if not recipients[name] in emails_to_send:
+                    emails_to_send[recipients[name]] = {}
+                emails_to_send[recipients[name]][jira_key] = {'message': subject + '\n' + error_text, 'recipients': name + " <" + recipients[name] + ">"}
+                #print emails_to_send[recipients[name]][jira_key]
 
     else:
         testcase = doc.createElement("testcase")
@@ -199,7 +201,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             for i, assignee_email in enumerate(emails_to_send):
                 problem_count = str(len(emails_to_send[assignee_email]))
                 # note: python uses `value if condition else otherValue`, which is NOT the same as `condition ? value : otherValue`
-                entry = "Send email with " + problem_count + " issue(s) to: " + (options.toemail if options.toemail else assignee_email)
+                entry = ("Prepare (but do not send)" if options.dryrun else "Send") + " email with " + problem_count + " issue(s) to: " + (options.toemail + " (not " + assignee_email + ")" if options.toemail else assignee_email)
                 print entry
                 log = log + entry + "\n\n"
                 message = ''
@@ -218,7 +220,8 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     (options.toemail if options.toemail else assignee_email), 
                     problem_count + ' issue' + ('s' if len(emails_to_send[assignee_email]) > 1 else '') + ' with ' + issue_type.lower(), 
                     message,
-                    emails_to_send[assignee_email][jira_key]['recipients'])
+                    emails_to_send[assignee_email][jira_key]['recipients'], 
+                    options)
     
     if log:
         output = open(issue_type.lower().replace(" ","") + ".log", 'w')
@@ -238,6 +241,8 @@ parser.add_option("-f", "--fromemail", dest="fromemail", default=None, help="ema
 parser.add_option("-t", "--toemail", dest="toemail", default=None, help="email address override to which to send all mail; if omitted, send to actual JIRA assignees")
 parser.add_option("-n", "--unassignedjiraemail", dest="unassignedjiraemail", default=None, help="email to use for unassigned JIRAs; required if fromemail is specified")
 parser.add_option("-m", "--smtphost", dest="smtphost", default=None, help="smtp host to use; required if fromemail is specified")
+parser.add_option("-d", "--dry-run", dest="dryrun", default=None, help="do everything but actually sending mail")
+parser.add_option("-v", "--verbose", dest="verbose", default=None, help="dump email bodies to console")
 
 (options, args) = parser.parse_args()
 
