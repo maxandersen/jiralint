@@ -43,13 +43,13 @@ def mailsend (smtphost, from_email, to_email, subject, message, recipients_list,
     server.close()
 
 def jiraquery (options, url):
-    #print 'Fetching ' + url
     authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
     authinfo.add_password(None, options.jiraserver, options.username, options.password)
     handler = urllib2.HTTPBasicAuthHandler(authinfo)
     myopener = urllib2.build_opener(handler)
     opened = urllib2.install_opener(myopener)
-    # print options.jiraserver + url
+    if options.verbose:
+        print "Query: " + options.jiraserver + url
     req = urllib2.Request(options.jiraserver +  url)
     return json.load(urllib2.urlopen(req))
 
