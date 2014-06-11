@@ -8,13 +8,13 @@
   {
     "No fix version": {
       "jql": "project in (JBIDE,JBDS) AND fixVersion is EMPTY AND resolution is EMPTY and createdDate <= -7d",
-      "description": "please triage this issue - it is more than 7 days old and has no fix version."
+      "description": "please triage this issue - it is more than 7 days old and has no fix version. See http://bit.ly/aTUeGq for help."
     }
   },
   {
     "No component": {
       "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY",
-      "description": "please ensure this issue has a proper component set."
+      "description": "please ensure this issue has a proper component set. See http://bit.ly/aTUeGq for help."
     }
   }
 ]
