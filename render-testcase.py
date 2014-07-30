@@ -192,7 +192,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
  
     print('Write to ' + issue_type.lower().replace(" ","") + "-test.xml")
     output = open(issue_type.lower().replace(" ","") + "-test.xml", 'w')
-    output.write(string.encode('utf8', doc.toprettyxml(indent="  ")))
+    output.write(doc.toprettyxml(indent="  ").encode('utf8', 'replace'))
 
     # send emails & log to file
     log = ''
@@ -225,7 +225,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
     
     if log:
         output = open(issue_type.lower().replace(" ","") + ".log", 'w')
-        output.write(string.encode('utf8', log))
+        output.write(log.encode('utf8', 'replace'))
 
     return email_addresses
 
