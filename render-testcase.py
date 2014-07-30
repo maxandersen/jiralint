@@ -30,11 +30,14 @@ def email_array_to_string(email_array):
 
 # thanks to http://guidetoprogramming.com/joomla153/python-scripts/22-send-email-from-python
 def mailsend (smtphost, from_email, to_email, subject, message, recipients_list, options):
+    
     server = smtplib.SMTP(smtphost, 25)
 
     header = 'To: ' + recipients_list + '\n' + \
         'From: ' + from_email + '\n' + \
         'Subject: ACTION REQUIRED: ' + subject + '\n\n'
+
+    message = message.decode('utf8', 'replace')
     msg = header + '\n' + message
     if options.verbose:
         print msg
@@ -268,7 +271,7 @@ if options.reportfile:
             payload = {'jql': fields['jql'], 'maxResults' : options.maxresults}
             data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
             print(str(len(data['issues'])) + " issues found with '" + issue_type.lower() + "'")
-            email_addresses = render(issue_type, fields['description'], data, data['issues'], fields['jql'], options, email_addresses, components)
+            email_addresses = render(issue_type, fields['description'].encode('utf8','replace'), data, data['issues'], fields['jql'], options, email_addresses, components)
 else:
     print "Generating based on .json found on standard in"
     data = json.load(sys.stdin)
