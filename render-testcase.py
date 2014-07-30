@@ -219,7 +219,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     options.fromemail, 
                     (options.toemail if options.toemail else assignee_email), 
                     problem_count + ' issue' + ('s' if len(emails_to_send[assignee_email]) > 1 else '') + ' with ' + issue_type.lower(), 
-                    message,
+                    message.encode('utf8','replace'),
                     emails_to_send[assignee_email][jira_key]['recipients'], 
                     options)
     
