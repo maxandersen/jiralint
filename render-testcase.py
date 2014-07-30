@@ -39,7 +39,7 @@ def mailsend (smtphost, from_email, to_email, subject, message, recipients_list,
 
     message = message.decode('utf8', 'replace')
     msg = header + '\n' + message
-    msg = message.encode('utf8', 'replace')
+    msg = msg.encode('utf8', 'replace')
     if options.verbose:
         print msg
     if options.dryrun is None:
