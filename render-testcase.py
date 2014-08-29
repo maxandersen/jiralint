@@ -42,7 +42,7 @@ def mailsend (smtphost, from_email, to_email, subject, message, recipients_list,
     msg = msg.encode('utf8', 'replace')
     if options.verbose:
         print msg
-    if options.dryrun is None:
+    if not options.dryrun:
         server.sendmail(from_email, recipients_list, msg)
     server.close()
 
@@ -102,7 +102,12 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     payload = {'jql': '(assignee=' + component_lead_name + ')', 'maxResults' : 1}
                     lead_data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
                     for issue in lead_data['issues']:
-                        component_lead_email = str(issue['fields']['assignee']['emailAddress'])
+                        
+                        if 'emailAddress' in issue['fields']['assignee']:
+                            component_lead_email = str(issue['fields']['assignee']['emailAddress'])
+                        else:
+                            component_lead_email = options.unassignedjiraemail
+                            print 'No email found for lead ' + component_lead_name
                         email_addresses[component_lead_name] = component_lead_email
                         #print "Set:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
                 component_details.append({'name': component_name, 'lead': component_lead_name, 'email': component_lead_email})
@@ -124,7 +129,10 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             assignee_email = str(options.unassignedjiraemail)
             if fields['assignee']:
                 assignee_name = str(fields['assignee']['name'])
-                assignee_email = str(fields['assignee']['emailAddress'])
+                if 'emailAddress' in fields['assignee']:
+                    assignee_email = str(fields['assignee']['emailAddress'])
+                else:
+                    print 'No email found for assignee: ' + assignee_name
                 assignees[assignee_name] = assignee_email
                 recipients[assignee_name] = assignee_email
                 if not assignee_name in email_addresses:
@@ -245,8 +253,8 @@ parser.add_option("-f", "--fromemail", dest="fromemail", default=None, help="ema
 parser.add_option("-t", "--toemail", dest="toemail", default=None, help="email address override to which to send all mail; if omitted, send to actual JIRA assignees")
 parser.add_option("-n", "--unassignedjiraemail", dest="unassignedjiraemail", default=None, help="email to use for unassigned JIRAs; required if fromemail is specified")
 parser.add_option("-m", "--smtphost", dest="smtphost", default=None, help="smtp host to use; required if fromemail is specified")
-parser.add_option("-d", "--dry-run", dest="dryrun", default=None, help="do everything but actually sending mail")
-parser.add_option("-v", "--verbose", dest="verbose", default=None, help="dump email bodies to console")
+parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually sending mail")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="dump email bodies to console")
 
 (options, args) = parser.parse_args()
 
