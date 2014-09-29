@@ -11,10 +11,26 @@ from datetime import timedelta
 import pprint
 from xml.dom.minidom import Document
 from optparse import OptionParser
+import base64
 
 pp = pprint.PrettyPrinter(indent=4)
 
-
+def fetch_email(username, fallback, email_addresses):
+    if username in email_addresses:
+        return email_addresses[username]
+    else:
+        found = None
+        payload = {'username': username}
+        user_data = jiraquery(options, "/rest/api/2/user?" + urllib.urlencode(payload))
+        if 'emailAddress' in user_data:
+            found = str(user_data['emailAddress'])
+            email_addresses[username]=found
+        else:
+            print 'No email found for ' + username + ' using ' + str(fallback)
+            found = fallback
+            # don't cache if not found
+        return found
+                                        
 
 def xstr(s):
     if s is None:
@@ -47,15 +63,15 @@ def mailsend (smtphost, from_email, to_email, subject, message, recipients_list,
     server.close()
 
 def jiraquery (options, url):
-    authinfo = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    authinfo.add_password(None, options.jiraserver, options.username, options.password)
-    handler = urllib2.HTTPBasicAuthHandler(authinfo)
-    myopener = urllib2.build_opener(handler)
-    opened = urllib2.install_opener(myopener)
+    request = urllib2.Request(options.jiraserver + url)
+    base64string = base64.encodestring('%s:%s' % (options.username, options.password)).replace('\n', '')
+    request.add_header("Authorization", "Basic %s" % base64string)   
+
+
     if options.verbose:
         print "Query: " + options.jiraserver + url
-    req = urllib2.Request(options.jiraserver +  url)
-    return json.load(urllib2.urlopen(req))
+   
+    return json.load(urllib2.urlopen(request))
 
 def render(issue_type, issue_description, jira_env, issues, jql, options, email_addresses, components):
         
@@ -91,25 +107,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     
                 component_name = str(component_data['name'])
                 component_lead_name = str(component_data['lead']['name'])
-                if component_lead_name in email_addresses:
-                    component_lead_email = email_addresses[component_lead_name]
-                    #print "Get:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
-                elif component_lead_name:
-                    # print component_lead_name
-                    # https://issues.jboss.org/rest/api/2/user?username=ldimaggio requires auth and fails with 401, but 
-                    # https://issues.jboss.org/rest/api/2/search?jql=%28assignee=ldimaggio%29&maxResults=1 requires no auth
-                    #print "Get component lead email: " + component_lead_name
-                    payload = {'jql': '(assignee=' + component_lead_name + ')', 'maxResults' : 1}
-                    lead_data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
-                    for issue in lead_data['issues']:
-                        
-                        if 'emailAddress' in issue['fields']['assignee']:
-                            component_lead_email = str(issue['fields']['assignee']['emailAddress'])
-                        else:
-                            component_lead_email = options.unassignedjiraemail
-                            print 'No email found for lead ' + component_lead_name
-                        email_addresses[component_lead_name] = component_lead_email
-                        #print "Set:1 email_addresses['" + component_lead_name + "'] = " + component_lead_email
+                component_lead_email = fetch_email(component_lead_name, options.unassignedjiraemail, email_addresses)
                 component_details.append({'name': component_name, 'lead': component_lead_name, 'email': component_lead_email})
             fix_version = ""
             for version in fields['fixVersions']:
@@ -132,7 +130,9 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                 if 'emailAddress' in fields['assignee']:
                     assignee_email = str(fields['assignee']['emailAddress'])
                 else:
-                    print 'No email found for assignee: ' + assignee_name
+                    assignee_email = fetch_email(assignee_name, None, email_addresses)
+                    if not assignee_email:
+                        print 'No email found for assignee: ' + assignee_name
                 assignees[assignee_name] = assignee_email
                 recipients[assignee_name] = assignee_email
                 if not assignee_name in email_addresses:
