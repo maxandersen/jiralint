@@ -1,0 +1,10 @@
+{
+    "devstudio_next": {
+        "description": "Current project+versions for next devstudio.", 
+        "jql": "((project = JBIDE AND fixVersion in ('4.2.1.Final')) OR (project = JBDS AND fixVersion in ('8.0.1.Final')))"
+    }, 
+    "devstudio_stable": {
+        "description": "Current project+versions for devstudio maintanence", 
+        "jql": "((project = JBIDE AND fixVersion in ('4.2.0.Final')) OR (project = JBDS AND fixVersion in ('8.0.0.Final')))"
+    }
+}

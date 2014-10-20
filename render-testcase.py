@@ -1,6 +1,5 @@
 from urlparse import urlparse
 import urllib
-import urllib2
 ##import yaml  not on rhel4
 import json
 import sys
@@ -11,7 +10,9 @@ from datetime import timedelta
 import pprint
 from xml.dom.minidom import Document
 from optparse import OptionParser
-import base64
+
+
+from common import shared
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -21,7 +22,7 @@ def fetch_email(username, fallback, email_addresses):
     else:
         found = None
         payload = {'username': username}
-        user_data = jiraquery(options, "/rest/api/2/user?" + urllib.urlencode(payload))
+        user_data = shared.jiraquery(options, "/rest/api/2/user?" + urllib.urlencode(payload))
         if 'emailAddress' in user_data:
             found = str(user_data['emailAddress'])
             email_addresses[username]=found
@@ -62,16 +63,6 @@ def mailsend (smtphost, from_email, to_email, subject, message, recipients_list,
         server.sendmail(from_email, recipients_list, msg)
     server.close()
 
-def jiraquery (options, url):
-    request = urllib2.Request(options.jiraserver + url)
-    base64string = base64.encodestring('%s:%s' % (options.username, options.password)).replace('\n', '')
-    request.add_header("Authorization", "Basic %s" % base64string)   
-
-
-    if options.verbose:
-        print "Query: " + options.jiraserver + url
-   
-    return json.load(urllib2.urlopen(request))
 
 def render(issue_type, issue_description, jira_env, issues, jql, options, email_addresses, components):
         
@@ -102,7 +93,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     component_data = components[component['id']]
                 else:
                     # print 'Query ' + component['name'] + ' component lead'
-                    component_data = jiraquery(options, "/rest/api/2/component/" + component['id'])
+                    component_data = shared.jiraquery(options, "/rest/api/2/component/" + component['id'])
                     components[component['id']] = component_data
                     
                 component_name = str(component_data['name'])
@@ -278,7 +269,7 @@ if options.reportfile:
         for issue_type,fields in report.items():
             print("Check for '"  + issue_type.lower() + "'")
             payload = {'jql': fields['jql'], 'maxResults' : options.maxresults}
-            data = jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
+            data = shared.jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
             print(str(len(data['issues'])) + " issues found with '" + issue_type.lower() + "'")
             email_addresses = render(issue_type, fields['description'].encode('utf8','replace'), data, data['issues'], fields['jql'], options, email_addresses, components)
 else:
