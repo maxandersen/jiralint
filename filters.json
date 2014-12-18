@@ -1,10 +1,32 @@
 {
-    "devstudio_next": {
-        "description": "Current project+versions for next devstudio.", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.2.1.Final')) OR (project = JBDS AND fixVersion in ('8.0.1.Final')))"
+    "ds_cdwtriage": {
+        "description": "Issues are New and have no target release set", 
+        "id": "12323016", 
+        "jql": "project = JBDS AND status = New AND (\"Target Release\" is EMPTY OR \"CDW release\" in (\"?\"))"
     }, 
-    "devstudio_stable": {
+    "ds_maint": {
         "description": "Current project+versions for devstudio maintanence", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.2.0.Final')) OR (project = JBDS AND fixVersion in ('8.0.0.Final')))"
+        "id": "12323017", 
+        "jql": "((project = JBIDE AND fixVersion in ('4.2.0.Final', '4.2.1.Final')) OR (project = JBDS AND fixVersion in ('8.0.0.GA', '8.0.2.GA', '8.0.3.GA')))"
+    }, 
+    "ds_mystuff": {
+        "description": "Issues assigned to current user or in a component lead by current user.", 
+        "id": "12323019", 
+        "jql": "assignee = currentUser() or component in (componentsLeadByUser())"
+    }, 
+    "ds_needpmack": {
+        "description": "Product manager have not yet approved a jira with a target release", 
+        "id": "12323018", 
+        "jql": "\"Target Release\" is not EMPTY AND \"CDW pm_ack\" = \"?\" AND resolution = Unresolved"
+    }, 
+    "ds_next": {
+        "description": "Current project+versions for next devstudio.", 
+        "id": "12323021", 
+        "jql": "((project = JBIDE AND fixVersion in ('4.3.0.Alpha1')) OR (project = JBDS AND fixVersion in ('9.0.0.Alpha1')))"
+    }, 
+    "ds_unresolved": {
+        "description": "Issues that are unresolved", 
+        "id": "12323020", 
+        "jql": "resolution is EMPTY"
     }
 }
