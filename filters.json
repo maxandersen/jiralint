@@ -7,7 +7,12 @@
     "ds_maint": {
         "description": "Current project+versions for devstudio maintanence", 
         "id": "12323017", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.2.0.Final', '4.2.1.Final')) OR (project = JBDS AND fixVersion in ('8.0.0.GA', '8.0.2.GA', '8.0.3.GA')))"
+        "jql": "((project = JBIDE AND fixVersion in ('4.2.0.Final', '4.2.1.Final', '4.2.2.Final')) OR (project = JBDS AND fixVersion in ('8.0.0.GA', '8.0.1.GA', '8.0.2.GA', '8.0.3.GA')))"
+    }, 
+    "ds_my_next": {
+        "description": "My stuff in next major", 
+        "id": "12323022", 
+        "jql": "filter='ds_mystuff' and filter='ds_next'"
     }, 
     "ds_mystuff": {
         "description": "Issues assigned to current user or in a component lead by current user.", 
@@ -22,7 +27,7 @@
     "ds_next": {
         "description": "Current project+versions for next devstudio.", 
         "id": "12323021", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.3.0.Alpha1')) OR (project = JBDS AND fixVersion in ('9.0.0.Alpha1')))"
+        "jql": "((project = JBIDE AND fixVersion > '4.3.0.Alpha1' and fixVersion <= '4.3.0.Final') OR (project = JBDS AND fixVersion > '9.0.0.Alpha1' and fixVersion <= '9.0.0.GA'))"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 
