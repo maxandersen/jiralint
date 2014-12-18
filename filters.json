@@ -2,26 +2,22 @@
     "ds_cdwtriage": {
         "description": "Issues are New and have no target release set", 
         "id": "12323016", 
-        "jql": "project = JBDS AND status = New AND (\"Target Release\" is EMPTY OR \"CDW release\" in (\"?\"))"
+        "jql": "project = JBDS AND status = New AND ('Target Release' is EMPTY OR 'CDW release' in ('?'))"
     }, 
     "ds_lockdown": {
         "description": "Issues for next lockdown", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.2.1.Final')) OR (project = JBDS AND fixVersion in ('8.0.1.GA'))"
+        "id": "12323031", 
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_lockdown_version)s )) OR (project = JBDS AND fixVersion in ( %(jbds_lockdown_version)s )))"
     }, 
     "ds_maint": {
         "description": "Current project+versions for devstudio maintanence", 
         "id": "12323017", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.2.0.Final', '4.2.1.Final', '4.2.2.Final')) OR (project = JBDS AND fixVersion in ('8.0.0.GA', '8.0.1.GA', '8.0.2.GA', '8.0.3.GA')))"
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_master_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_master_versions)s )))"
     }, 
     "ds_master": {
         "description": "Current project+versions for devstudio stream. (JBIDE-4.3.*, JBDS-9.*)", 
         "id": "12323021", 
         "jql": "((project = JBIDE AND fixVersion > '4.3.0.Alpha1' and fixVersion <= '4.3.0.Final') OR (project = JBDS AND fixVersion > '9.0.0.Alpha1' and fixVersion <= '9.0.0.GA'))"
-    }, 
-    "ds_my_next": {
-        "description": "My stuff in next major", 
-        "id": "12323022", 
-        "jql": "filter='ds_mystuff' and filter='ds_next'"
     }, 
     "ds_mystuff": {
         "description": "Issues assigned to current user or in a component lead by current user.", 
@@ -31,12 +27,7 @@
     "ds_needpmack": {
         "description": "Product manager have not yet approved a jira with a target release", 
         "id": "12323018", 
-        "jql": "\"Target Release\" is not EMPTY AND \"CDW pm_ack\" = \"?\" AND resolution = Unresolved"
-    }, 
-    "ds_next": {
-        "description": "Next upcoming versions", 
-        "id": "12323021", 
-        "jql": "((project = JBIDE AND fixVersion in ('4.2.2.Final', '4.3.0.Alpha1')) OR (project = JBDS AND fixVersion in ('8.0.2.GA', '9.0.0.Alpha1'))"
+        "jql": "'Target Release' is not EMPTY AND 'CDW pm_ack' = '?' AND resolution = Unresolved"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 
