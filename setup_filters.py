@@ -46,9 +46,9 @@ if options.filterfile:
             fields['id'] = shared.jirapost(options, "/rest/api/latest/filter", data)['id']
 
         newfilters[name] = fields
-        saveFilters(options.filterfile + ".backup", newfilters)
+        saveFilters(options.filterfile, newfilters) # saving every succesful iteration to not loose a filter id 
 
-    saveFilters(options.filterfile, newfilters)
+#    saveFilters(options.filterfile, newfilters)
     
 
 
