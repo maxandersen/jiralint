@@ -8,21 +8,28 @@ def saveFilters(name, filters):
     with open(name,'w') as outfile:
         json.dump(filters, outfile,indent=4, sort_keys=True)
 
+def loadConstants():
+    print "Loading constants from constants.json"
+    constantdef = json.load(open("constants.json", 'r'))
+    constants = {}
+    for name, fields in constantdef.items():
+        method = getattr(sys.modules[__name__], fields['function'])
+        del fields['function']
+        constants[name] = method(**fields)
+        print name + "->" + constants[name]
+
+    return constants
+
 
 def listVersions(project, pattern):
     versions = shared.jiraquery(options,"/rest/api/latest/project/" + project + "/versions")
-    #versionmatch = re.compile('4.2.(?!x).*')
     versionmatch = re.compile(pattern)
     foundversions = []
     for version in versions:
-       # print version['name']
         if versionmatch.match(version['name']):
             foundversions.append('"' + version['name'] + '"')
 
-    result = ", ".join(foundversions)
-
-    
-    return result
+    return ", ".join(foundversions)
 
 usage = "usage: %prog -u <user> -p <password> -f <filters.json>\nCreate/maintain set of filters defined in filters.json."
 
@@ -43,14 +50,7 @@ if options.filterfile:
     #print "Force enabling global shared filters. Will not have any effect if user is not allowed to globally share objects in jira."
     #shared.jiraupdate(options, "/rest/api/latest/filter/defaultShareScope", { 'scope': 'GLOBAL' })
 
-    print "Load constants"
-    constantdef = json.load(open("constants.json", 'r'))
-    constants = {}
-    for name, fields in constantdef.items():
-        method = getattr(sys.modules[__name__], fields['function'])
-        del fields['function']
-        constants[name] = method(**fields)
-        print name + "->" + constants[name]
+    constants = loadConstants()
     
     print "Using filters defined in " + options.filterfile
     filters = json.load(open(options.filterfile, 'r'))
@@ -74,7 +74,6 @@ if options.filterfile:
         newfilters[name] = fields
         saveFilters(options.filterfile, newfilters) # saving every succesful iteration to not loose a filter id 
 
-#    saveFilters(options.filterfile, newfilters)
     
 
 

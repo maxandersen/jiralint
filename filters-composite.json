@@ -1,0 +1,12 @@
+{
+    "ds_my_lockdown": {
+        "description": "Issues are New and have no target release set", 
+        "id": "12323032", 
+        "jql": "filter='ds_mystuff' and filter='ds_lockdown'"
+    }, 
+    "ds_my_next": {
+        "description": "Issues are New and have no target release set", 
+        "id": "12323022", 
+        "jql": "filter='ds_mystuff' and filter='ds_next'"
+    }
+}

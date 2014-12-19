@@ -12,12 +12,12 @@
     "ds_maint": {
         "description": "Current project+versions for devstudio maintanence", 
         "id": "12323017", 
-        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_master_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_master_versions)s )))"
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_maint_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_maint_versions)s )))"
     }, 
     "ds_master": {
         "description": "Current project+versions for devstudio stream. (JBIDE-4.3.*, JBDS-9.*)", 
         "id": "12323021", 
-        "jql": "((project = JBIDE AND fixVersion > '4.3.0.Alpha1' and fixVersion <= '4.3.0.Final') OR (project = JBDS AND fixVersion > '9.0.0.Alpha1' and fixVersion <= '9.0.0.GA'))"
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_master_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_master_versions)s )))"
     }, 
     "ds_mystuff": {
         "description": "Issues assigned to current user or in a component lead by current user.", 
@@ -28,6 +28,11 @@
         "description": "Product manager have not yet approved a jira with a target release", 
         "id": "12323018", 
         "jql": "'Target Release' is not EMPTY AND 'CDW pm_ack' = '?' AND resolution = Unresolved"
+    }, 
+    "ds_next": {
+        "description": "Issues for next development", 
+        "id": "12323033", 
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_next_version)s )) OR (project = JBDS AND fixVersion in ( %(jbds_lockdown_version)s )))"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 

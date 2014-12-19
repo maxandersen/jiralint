@@ -2,14 +2,24 @@
     "jbide_master_versions": {
 	"function": "listVersions",
 	"project": "JBIDE",
-	"pattern": "4.2.(?!x).*"
+	"pattern": "4.3.(?!x).*"
 	},
     "jbds_master_versions": {
 	"function": "listVersions",
 	"project": "JBDS",
 	"pattern": "9.0.(?!x).*"
 	},
-    "jbide_lockdown_version": {
+   "jbide_maint_versions": {
+	"function": "listVersions",
+	"project": "JBIDE",
+	"pattern": "4.2.(?!x).*"
+	},
+    "jbds_maint_versions": {
+	"function": "listVersions",
+	"project": "JBDS",
+	"pattern": "8...(?!x).*"
+	},
+   "jbide_lockdown_version": {
 	"function": "listVersions",
 	"project": "JBIDE",
 	"pattern": "4.2.1.Final"
@@ -18,5 +28,15 @@
 	"function": "listVersions",
 	"project": "JBDS",
 	"pattern": "8.0.1.*"
+    },
+    "jbide_next_version": {
+	"function": "listVersions",
+	"project": "JBIDE",
+	"pattern": "4.3.0.Alpha1"
+    },
+    "jbds_lockdown_version": {
+	"function": "listVersions",
+	"project": "JBDS",
+	"pattern": "9.0.0.Alpha1"
     }
 }
