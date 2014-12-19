@@ -10,12 +10,12 @@
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_lockdown_version)s )) OR (project = JBDS AND fixVersion in ( %(jbds_lockdown_version)s )))"
     }, 
     "ds_maint": {
-        "description": "Current project+versions for devstudio maintanence", 
+        "description": "Current project+versions for JBIDE/JBDS maintainence", 
         "id": "12323017", 
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_maint_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_maint_versions)s )))"
     }, 
     "ds_master": {
-        "description": "Current project+versions for devstudio stream. (JBIDE-4.3.*, JBDS-9.*)", 
+        "description": "Current project+versions for JBIDE/JBDS master stream", 
         "id": "12323021", 
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_master_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_master_versions)s )))"
     }, 
