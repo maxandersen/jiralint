@@ -1,12 +1,22 @@
 {
-    "ds_my_lockdown": {
-        "description": "Issues are New and have no target release set", 
-        "id": "12323032", 
-        "jql": "filter='ds_mystuff' and filter='ds_lockdown'"
+    "ds_my_freeze": {
+        "description": "Issues assigned or lead by user that is marked for freeze", 
+        "id": "12323043", 
+        "jql": "filter='ds_mystuff' and filter='ds_freeze' and filter='ds_unresolved'"
+    }, 
+    "ds_my_latertriage": {
+        "description": "Stuff in .x or LATER buckets", 
+        "id": "12323035", 
+        "jql": "filter='ds_mystuff' and filter='ds_unresolved' and (project = 'JBIDE' and fixversion in ( %(jbide_bucket_version)s ) or (project = 'JBDS' and fixversion in ( %(jbds_bucket_version)s )))"
+    }, 
+    "ds_my_needtriage": {
+        "description": "Non triaged stuff that I'm assigned or leading", 
+        "id": "12323034", 
+        "jql": "filter='ds_mystuff' and fixVersion is empty and filter='ds_unresolved'"
     }, 
     "ds_my_next": {
-        "description": "Issues are New and have no target release set", 
+        "description": "Upcoming work for next version", 
         "id": "12323022", 
-        "jql": "filter='ds_mystuff' and filter='ds_next'"
+        "jql": "filter='ds_mystuff' and filter='ds_next' and filter='ds_unresolved'"
     }
 }

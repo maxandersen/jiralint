@@ -4,10 +4,15 @@
         "id": "12323016", 
         "jql": "project = JBDS AND status = New AND ('Target Release' is EMPTY OR 'CDW release' in ('?'))"
     }, 
-    "ds_lockdown": {
-        "description": "Issues for next lockdown", 
+    "ds_decision": {
+        "description": "Issues that has has reference to a DECISION (experimental)", 
+        "id": "12323042", 
+        "jql": "comment ~ DECISION"
+    }, 
+    "ds_freeze": {
+        "description": "Issues for next freeze", 
         "id": "12323031", 
-        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_lockdown_version)s )) OR (project = JBDS AND fixVersion in ( %(jbds_lockdown_version)s )))"
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_freeze_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_freeze_versions)s )))"
     }, 
     "ds_maint": {
         "description": "Current project+versions for JBIDE/JBDS maintainence", 
@@ -30,9 +35,9 @@
         "jql": "'Target Release' is not EMPTY AND 'CDW pm_ack' = '?' AND resolution = Unresolved"
     }, 
     "ds_next": {
-        "description": "Issues for next development", 
+        "description": "Issues for next development in either maintanence or master", 
         "id": "12323033", 
-        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_next_version)s )) OR (project = JBDS AND fixVersion in ( %(jbds_lockdown_version)s )))"
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_next_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_versions)s )))"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 
