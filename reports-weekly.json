@@ -1,7 +1,7 @@
 [
   {
     "Illegal fix version for resolved issue": {
-      "jql": "(project = JBIDE AND (fixVersion in ('3.1.x', '3.2.x', '4.0.x', '4.1.x', '4.2.x', LATER) OR fixVersion is EMPTY) OR project = JBDS AND (fixVersion in ('3.0.x', '4.0.x', '6.0.x', '7.1.x', '8.0.x', LATER) OR fixVersion is EMPTY)) AND resolution = done AND updatedDate >= -720d",
+      "jql": "(filter='ds_lint_illegalfixversion') AND updatedDate >= -720d",
       "description": "please set a valid fix version for this resolved/closed issue - cannot be blank, LATER, or #.#.x. See http://bit.ly/aTUeGq for help. "
     }
   },
@@ -13,13 +13,13 @@
   },
   {
     "No component": {
-      "jql": "project in (JBIDE,JBDS) AND component is EMPTY AND resolution is EMPTY",
+      "jql": "(filter='ds_lint_nocomponent')",
       "description": "please ensure this issue has a proper component set."
     }
   },
   {
     "Unresolved issue with already released fix version": {
-      "jql": "project in (JBIDE, JBDS) and fixVersion in releasedVersions() and resolution is empty",
+      "jql": "filter = 'ds_lint_unresolved_in_release'",
       "description": "This issue is set to be fixed in an already released version. Please triage."
     }
   }

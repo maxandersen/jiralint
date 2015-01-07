@@ -60,7 +60,7 @@ def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, arch
     """
 
     versions = shared.jiraquery(options,"/rest/api/latest/project/" + project + "/versions")
-    print pattern
+    if options.verbose: print(pattern)
     versionmatch = re.compile(pattern)
     foundversions = []
     for version in versions:
@@ -108,7 +108,7 @@ parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.j
 parser.add_option("-f", "--filters", dest="filterfiles", default="filters.json", help="comma separated list of filters to setup")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="more verbose logging")
 (options, args) = parser.parse_args()
-
+    
 if not options.username or not options.password:
     parser.error("Missing username or password")
 
@@ -128,6 +128,7 @@ if options.filterfiles:
         newfilters = filters.copy()
         for name, fields in filters.items():
             try:
+                print "filter " + name
                 data = {
                     'name': name,
                     'description': fields['description'],
@@ -136,10 +137,10 @@ if options.filterfiles:
                 }
         
                 if 'id' in fields:
-                    print 'updating ' + name
+                    print 'updating filter ' + name + "->" + data['jql']
                     fields['id'] = shared.jiraupdate(options, "/rest/api/latest/filter/" + fields['id'], data)['id']
                 else:
-                    print 'creating ' + name
+                    print 'creating filter ' + name + "->" + data['jql']
                     fields['id'] = shared.jirapost(options, "/rest/api/latest/filter", data)['id']
 
                 newfilters[name] = fields

@@ -15,10 +15,9 @@ def jiraquery (options, url):
     return json.load(urllib2.urlopen(request))
 
 def jirapost(options, url, data):
-    if(options.verbose):
-        handler=urllib2.HTTPSHandler(debuglevel=1)
-    else:
-        handler=urllib2.HTTPSHandler()
+    
+    #    handler=urllib2.HTTPSHandler(debuglevel=1)
+    handler=urllib2.HTTPSHandler()
         
     opener = urllib2.build_opener(handler)
     urllib2.install_opener(opener)

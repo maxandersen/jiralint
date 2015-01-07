@@ -14,6 +14,21 @@
         "id": "12323031", 
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_freeze_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_freeze_versions)s )))"
     }, 
+    "ds_lint_illegalfixversion": {
+        "description": "illegal fix versions", 
+        "id": "12323048", 
+        "jql": "(project = JBIDE AND (fixVersion in ( %(jbide_bucket_versions)s ) OR fixVersion is EMPTY) OR project = JBDS AND (fixVersion in ( %(jbds_bucket_versions)s ) OR fixVersion is EMPTY)) AND resolution = done"
+    }, 
+    "ds_lint_nocomponent": {
+        "description": "Unresolved issues without components", 
+        "id": "12323047", 
+        "jql": "project in (JBIDE,JBDS) and component is EMPTY AND resolution is EMPTY"
+    }, 
+    "ds_lint_unresolved_in_release": {
+        "description": "Unresolved issues in already released versions", 
+        "id": "12323049", 
+        "jql": "project in (JBIDE, JBDS) and fixVersion in releasedVersions() and resolution is empty"
+    }, 
     "ds_maint": {
         "description": "Current project+versions for JBIDE/JBDS maintenance", 
         "id": "12323017", 

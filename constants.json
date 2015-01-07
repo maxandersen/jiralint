@@ -33,12 +33,12 @@
 	"released": false,
 	"hasStartDate": true
     },
-    "jbds_bucket_version": {
+    "jbds_bucket_versions": {
 	"function": "listVersions",
 	"project": "JBDS",
 	"pattern": ".*.x|LATER"
     },
-    "jbide_bucket_version": {
+    "jbide_bucket_versions": {
 	"function": "listVersions",
 	"project": "JBIDE",
 	"pattern": ".*.x$|LATER"

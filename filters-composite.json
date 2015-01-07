@@ -7,7 +7,7 @@
     "ds_my_latertriage": {
         "description": "Stuff in .x or LATER buckets", 
         "id": "12323035", 
-        "jql": "filter='ds_mystuff' and filter='ds_unresolved' and (project = 'JBIDE' and fixversion in ( %(jbide_bucket_version)s ) or (project = 'JBDS' and fixversion in ( %(jbds_bucket_version)s )))"
+        "jql": "filter='ds_mystuff' and filter='ds_unresolved' and (project = 'JBIDE' and fixversion in ( %(jbide_bucket_versions)s ) or (project = 'JBDS' and fixversion in ( %(jbds_bucket_versions)s )))"
     }, 
     "ds_my_needtriage": {
         "description": "Non triaged stuff that I'm assigned or leading", 
