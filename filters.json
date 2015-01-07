@@ -15,7 +15,7 @@
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_freeze_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_freeze_versions)s )))"
     }, 
     "ds_maint": {
-        "description": "Current project+versions for JBIDE/JBDS maintainence", 
+        "description": "Current project+versions for JBIDE/JBDS maintenance", 
         "id": "12323017", 
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_maint_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_maint_versions)s )))"
     }, 
@@ -35,9 +35,9 @@
         "jql": "'Target Release' is not EMPTY AND 'CDW pm_ack' = '?' AND resolution = Unresolved"
     }, 
     "ds_next": {
-        "description": "Issues for next development in either maintanence or master", 
+        "description": "Issues for next development in either maintenance or master", 
         "id": "12323033", 
-        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_next_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_versions)s )))"
+        "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_versions)s )))"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 

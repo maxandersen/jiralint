@@ -5,6 +5,8 @@ import re
 import json
 import sys
 import os
+import time
+import datetime
 
 def saveFilters(name, filters):
     with open(name,'w') as outfile:
@@ -23,8 +25,16 @@ def loadConstants():
     
     return constants
 
+def isCodefrozenToday(v):
+    result = re.search(".*codefreeze:.*([0-9]{4}.[0-9]{2}.[0-9]{2}).*", v['description'])
+    if result:
+        ts = time.mktime(datetime.datetime.strptime(result.group(1), "%Y/%m/%d").timetuple())
+        if ts <= time.time():
+            return True
 
-def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, archived=None, hasStartDate=None, lowerLimit=None, upperLimit=None, index=None):
+    return False
+
+def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, archived=None, hasStartDate=None, codefrozen=None, lowerLimit=None, upperLimit=None, index=None):
     """Return list of versions for a specific project matching a pattern and a list of optional filters.
 
            arguments:
@@ -34,8 +44,9 @@ def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, arch
             archived -- boolean to state if the version should be archived or not. (default=None)
             hasStartDate -- boolean to state if the version should have a start date. (default=None)
             hasReleaseDate -- boolean to state if the version should have a released date. (default=None)
+            codefrozen -- boolean if description of version contains (codefreeze: <date>) and date has occurred true will include it otherwise exclude it. 
             upperLimit -- upper limit (default=None)
-            lowerLimit -- lower limit (default=None_
+            lowerLimit -- lower limit (default=None)
             index -- integer to state which index to get (supports negative indexing too, -1=last element), if index out of range nothing is returned. (default=None)
 
             examples:
@@ -67,7 +78,10 @@ def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, arch
 
     if archived is not None:
         foundversions = filter(lambda v: archived == v['archived'], foundversions)
-        
+
+    if codefrozen is not None:
+        foundversions = filter(lambda v: isCodefrozenToday(v), foundversions)
+                
     if upperLimit or lowerLimit:
         foundversions = foundversions[lowerLimit:upperLimit]
 
@@ -81,7 +95,7 @@ def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, arch
     
     return ", ".join(foundversions)
 
-            
+    
 
 usage = "usage: %prog -u <user> -p <password> -f <filters.json>\nCreate/maintain set of filters defined in filters.json."
 
