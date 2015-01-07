@@ -7,7 +7,7 @@
     "ds_decision": {
         "description": "Issues that has has reference to a DECISION (experimental)", 
         "id": "12323042", 
-        "jql": "comment ~ DECISION"
+        "jql": "comment ~ \\[DECISION\\]"
     }, 
     "ds_freeze": {
         "description": "Issues for next freeze", 
