@@ -44,10 +44,15 @@
         "id": "12323018", 
         "jql": "'Target Release' is not EMPTY AND 'CDW pm_ack' = '?' AND resolution = Unresolved"
     }, 
-    "ds_next": {
-        "description": "Issues for next development in either maintenance or master", 
-        "id": "12323033", 
-        "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_versions)s )))"
+    "ds_next_maint": {
+        "description": "Issues for next development in maintenance or master", 
+        "id": "12323056", 
+        "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_maint_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_maint_versions)s )))"
+    }, 
+    "ds_next_master": {
+        "description": "Issues for next development in maintenance or master", 
+        "id": "12323057", 
+        "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_maint_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_maint_versions)s )))"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 
