@@ -119,7 +119,7 @@ if options.filterfiles:
 
     constants = loadConstants()
 
-    
+    allfilters = {}
     filterfiles = options.filterfiles.split(',')
     for filterfile in filterfiles:
         print "Processing filters found in " + filterfile
@@ -135,19 +135,29 @@ if options.filterfiles:
                     'jql': fields['jql'] % constants,
                     'favourite' : 'true'
                 }
-        
+                
                 if 'id' in fields:
                     print 'updating filter ' + name + "->" + data['jql']
                     fields['id'] = shared.jiraupdate(options, "/rest/api/latest/filter/" + fields['id'], data)['id']
                 else:
                     print 'creating filter ' + name + "->" + data['jql']
                     fields['id'] = shared.jirapost(options, "/rest/api/latest/filter", data)['id']
-
+                allfilters[name] = fields
                 newfilters[name] = fields
                 saveFilters(filterfile, newfilters) # saving every succesful iteration to not loose a filter id 
             except urllib2.HTTPError, e:
                 print "Problem with setting up filter %s with JQL = %s" % (data['name'], data['jql']);
-                
+
+    print "Jira filters in asciidoc: "
+    print "[options=\"header\"]"
+    print ".Jira Filters"
+    print "|==="
+    print "|Name| URL| Description| Query" 
+    for name, fields in allfilters.items():
+        print "| https://issues.jboss.org/issues/?filter="+ fields['id'] + "[" + name + "] | " + fields['description'] + "| " + fields['jql']
+        
+
+    
     
 
 
