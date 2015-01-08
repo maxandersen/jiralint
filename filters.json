@@ -4,11 +4,6 @@
         "id": "12323016", 
         "jql": "project = JBDS AND status = New AND ('Target Release' is EMPTY OR 'CDW release' in ('?'))"
     }, 
-    "ds_decision": {
-        "description": "Issues that has has reference to a DECISION (experimental)", 
-        "id": "12323042", 
-        "jql": "comment ~ \\[DECISION\\]"
-    }, 
     "ds_freeze": {
         "description": "Issues for next freeze", 
         "id": "12323031", 
