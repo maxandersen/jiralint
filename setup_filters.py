@@ -152,7 +152,7 @@ if options.filterfiles:
     print "[options=\"header\"]"
     print ".Jira Filters"
     print "|==="
-    print "|Name| URL| Description| Query" 
+    print "|Name|  Description| Query" 
     for name, fields in allfilters.items():
         print "| https://issues.jboss.org/issues/?filter="+ fields['id'] + "[" + name + "] | " + fields['description'] + "| " + fields['jql']
         
