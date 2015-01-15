@@ -52,7 +52,7 @@
     "ds_next_master": {
         "description": "Issues for next development in maintenance or master", 
         "id": "12323057", 
-        "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_maint_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_maint_versions)s )))"
+        "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_master_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_master_versions)s )))"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 
