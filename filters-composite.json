@@ -14,11 +14,6 @@
         "id": "12323035", 
         "jql": "filter='ds_mystuff' and filter='ds_unresolved' and (project = 'JBIDE' and fixversion in ( %(jbide_bucket_versions)s ) or (project = 'JBDS' and fixversion in ( %(jbds_bucket_versions)s )))"
     }, 
-    {
-    "ds_needtriage": {
-	"description": "Non triaged stuff",
-        "jql": "fixVersion is empty and filter='ds_unresolved' and project in (JBIDE,JBDS)"
-    },
     "ds_my_needtriage": {
         "description": "Non triaged stuff that I'm assigned or leading", 
         "id": "12323034", 
@@ -33,6 +28,11 @@
         "description": "my unresolved work for next version", 
         "id": "12323076", 
         "jql": "filter='ds_mystuff' and filter='ds_next_master' and filter='ds_unresolved'"
+    }, 
+    "ds_needtriage": {
+        "description": "Non triaged stuff", 
+        "id": "12323095", 
+        "jql": "fixVersion is empty and filter='ds_unresolved' and project in (JBIDE,JBDS)"
     }, 
     "ds_next_maint_unresolved": {
         "description": "unresolved work for next maintanence", 
