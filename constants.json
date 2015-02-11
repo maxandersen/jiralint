@@ -24,28 +24,32 @@
 	"project": "JBIDE",
 	"pattern": "4.2.(?!x).*",
         "hasStartDate": true,
-	"index": -1
+	"released": false,
+	"index": 0
     },
     "jbds_next_maint_versions": {
 	"function": "listVersions",
 	"project": "JBDS",
 	"pattern": "8...(?!x).*",
         "hasStartDate": true,
-	"index": -1
+	"released": false,
+	"index": 0
     },
     "jbide_next_master_versions": {
 	"function": "listVersions",
 	"project": "JBIDE",
 	"pattern": "4.3.(?!x).*",
         "hasStartDate": true,
-	"index": -1
+	"released": false,
+	"index": 0
     },
     "jbds_next_master_versions": {
 	"function": "listVersions",
 	"project": "JBDS",
 	"pattern": "9...(?!x).*",
         "hasStartDate": true,
-	"index": -1
+	"released": false,
+	"index": 0
     },
     "jbds_bucket_versions": {
 	"function": "listVersions",
