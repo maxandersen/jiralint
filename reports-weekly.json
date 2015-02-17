@@ -22,5 +22,11 @@
       "jql": "filter = 'ds_lint_unresolved_in_release'",
       "description": "This issue is set to be fixed in an already released version. Please triage."
     }
+  },
+  {
+      "Unresolved issue for codefrozen version": {
+	  "jql": "filter = 'ds_freeze' and filter = 'ds_unresolved'",
+	  "description": "This issue is on a release that is codefrozen and thus should be triaged ASAP."
+      }
   }
 ]
