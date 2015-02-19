@@ -7,7 +7,7 @@
     "ds_my_freeze_unresolved": {
         "description": "Issues assigned or lead by user that is marked for freeze and unresolved", 
         "id": "12323083", 
-        "jql": "filter='ds_mystuff' and filter='ds_freeze'"
+        "jql": "filter='ds_mystuff' and filter='ds_freeze' and filter='ds_unresolved'" 
     }, 
     "ds_my_latertriage": {
         "description": "Stuff in .x or LATER buckets", 
