@@ -26,14 +26,15 @@ def loadConstants():
     return constants
 
 def isCodefrozenToday(v):
-    result = re.search(".*codefreeze:.*([0-9]{4}.[0-9]{2}.[0-9]{2}).*", v['description'])
-    if result:
-        try:
-            ts = time.mktime(datetime.datetime.strptime(result.group(1), "%Y/%m/%d").timetuple())
-        except ValueError:
-            ts = time.mktime(datetime.datetime.strptime(result.group(1), "%Y-%m-%d").timetuple())
-        if ts <= time.time():
-            return True
+    if 'description' in v:
+        result = re.search(".*codefreeze:.*([0-9]{4}.[0-9]{2}.[0-9]{2}).*", v['description'])
+        if result:
+            try:
+                ts = time.mktime(datetime.datetime.strptime(result.group(1), "%Y/%m/%d").timetuple())
+            except ValueError:
+                ts = time.mktime(datetime.datetime.strptime(result.group(1), "%Y-%m-%d").timetuple())
+            if ts <= time.time():
+                return True
 
     return False
 
