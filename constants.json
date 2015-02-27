@@ -64,7 +64,7 @@
     "jbide_freeze_versions": {
 	"function": "listVersions",
 	"project": "JBIDE",
-	"pattern": "4.2.1.*|4.3.*",
+	"pattern": "4.2.*|4.3.*",
 	"codefrozen": true
     },
     "jbds_freeze_versions": {
