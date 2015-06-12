@@ -25,8 +25,8 @@
   },
   {
       "Unresolved issue for codefrozen version": {
-	  "jql": "filter = 'ds_freeze' and filter = 'ds_unresolved' AND updated <= -2d ",
-	  "description": "This issue is on a release that is codefrozen and no updates for 2 days. Shuold be triaged."
+	  "jql": "filter = 'ds_freeze' and filter = 'ds_unresolved' AND updated <= -2d and (labels not in ('releasework') or labels is empty)",
+	  "description": "This issue is on a release that is codefrozen and no updates for 2 days nor labeled as 'releasework'. Should be triaged."
       }
   }
 ]

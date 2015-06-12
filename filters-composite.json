@@ -1,4 +1,14 @@
 {
+    "ds_maint_noack": {
+        "description": "issues that are missing ack or nack", 
+        "id": "12323333", 
+        "jql": "filter='ds_maint' and 'CDW release' = '?'"
+    }, 
+    "ds_master_noack": {
+        "description": "issues that are missing ack or nack", 
+        "id": "12323334", 
+        "jql": "filter='ds_master' and 'CDW release' = '?'"
+    }, 
     "ds_my_freeze": {
         "description": "Issues assigned or lead by user that is marked for freeze", 
         "id": "12323043", 

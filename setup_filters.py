@@ -8,6 +8,9 @@ import os
 import time
 import datetime
 
+def getval(object):
+    return object
+
 def saveFilters(name, filters):
     with open(name,'w') as outfile:
         json.dump(filters, outfile,indent=4, sort_keys=True)
