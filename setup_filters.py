@@ -28,7 +28,9 @@ def loadConstants():
     
     return constants
 
-def isCodefrozenToday(v):
+
+def isCodefrozenToday(v, flag=True):
+    """Sees if v is codefrozen and return value of flag (default true). If codefrozen cannot be detected it will return opposite of the flag."""
     if 'description' in v:
         result = re.search(".*codefreeze:.*([0-9]{4}.[0-9]{2}.[0-9]{2}).*", v['description'])
         if result:
@@ -37,9 +39,18 @@ def isCodefrozenToday(v):
             except ValueError:
                 ts = time.mktime(datetime.datetime.strptime(result.group(1), "%Y-%m-%d").timetuple())
             if ts <= time.time():
-                return True
+                return flag
 
-    return False
+    return not flag
+
+def hasFieldOrNot(field, flag,v):
+    #print "Checking if " + field + " = " + str(flag) + " when it is " + v.get(field)
+    if flag:
+        r = field in v
+    else:
+        r = field not in v
+    #print "result : " + str(r)
+    return r
 
 def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, archived=None, hasStartDate=None, codefrozen=None, lowerLimit=None, upperLimit=None, index=None):
     """Return list of versions for a specific project matching a pattern and a list of optional filters.
@@ -67,37 +78,49 @@ def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, arch
     """
 
     versions = shared.jiraquery(options,"/rest/api/latest/project/" + project + "/versions")
-    if options.verbose: print(pattern)
+    if options.verbose:
+        print(pattern)
+        #print codefrozen
+        
     versionmatch = re.compile(pattern)
     foundversions = []
     for version in versions:
         if versionmatch.match(version['name']):
             foundversions.append(version)
 
+    #print "after versionmatch: " + str(len(foundversions))
+    
     if released is not None:
         foundversions = filter(lambda v: released == v['released'], foundversions)
-        
+        #print "after released: " + str(len(foundversions))
+    
     if hasReleaseDate is not None:
-        foundversions = filter(lambda v: 'releaseDate' in v, foundversions)
-
+        foundversions = filter(lambda v: hasFieldOrNot('releaseDate', hasReleaseDate, v), foundversions)
+        #print "after hasReleaseDate: " + str(len(foundversions))
+    
     if hasStartDate is not None:
-        foundversions = filter(lambda v: 'startDate' in v, foundversions)
-
+        foundversions = filter(lambda v: hasFieldOrNot('startDate', hasStartDate, v), foundversions)
+        #print "after hasStartDate: " + str(len(foundversions))
+    
     if archived is not None:
         foundversions = filter(lambda v: archived == v['archived'], foundversions)
+        #print "after archived: " + str(len(foundversions))
 
     if codefrozen is not None:
-        foundversions = filter(lambda v: isCodefrozenToday(v), foundversions)
-                
+        foundversions = filter(lambda v: isCodefrozenToday(v, codefrozen), foundversions)
+        #print "after codefrozen: " + str(len(foundversions))
+    
     if upperLimit or lowerLimit:
         foundversions = foundversions[lowerLimit:upperLimit]
-
+        #print "after limits: " + str(len(foundversions))
+    
     if index is not None:
         try:
             foundversions = [foundversions[index]]
         except IndexError:
             foundversions = []
-
+        print "after index: " + str(len(foundversions))
+    
     foundversions = map(lambda v: v['name'], foundversions)
     
     return ", ".join(foundversions)

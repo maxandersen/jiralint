@@ -1,8 +1,4 @@
 {
-    "ds_respin": {
-	"description": "Issues included in a respin (has label containing 'respin-[a-k]')"
-	"jql": "labels in ('respin-a', 'respin-b', 'respin-c', 'respin-d', 'respin-e', 'respin-f', 'respin-g', 'respin-h','respin-i', 'respin-j')"
-    },
     "ds_cdwtriage": {
         "description": "Issues are New and have no target release set", 
         "id": "12323016", 
@@ -57,6 +53,11 @@
         "description": "Issues for next development in maintenance or master", 
         "id": "12323057", 
         "jql": "((project = JBIDE AND fixVersion in (  %(jbide_next_master_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_next_master_versions)s )))"
+    }, 
+    "ds_respin": {
+        "description": "Issues included in a respin (has label containing 'respin-[a-k]')", 
+        "id": "12323973", 
+        "jql": "labels in ('respin-a', 'respin-b', 'respin-c', 'respin-d', 'respin-e', 'respin-f', 'respin-g', 'respin-h','respin-i', 'respin-j')"
     }, 
     "ds_unresolved": {
         "description": "Issues that are unresolved", 

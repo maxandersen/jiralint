@@ -41,6 +41,7 @@
 	"pattern": "4.3.(?!x).*",
         "hasStartDate": true,
 	"released": false,
+	"codefrozen": false,
 	"index": 0
     },
     "jbds_next_master_versions": {
@@ -49,6 +50,7 @@
 	"pattern": "9...(?!x).*",
         "hasStartDate": true,
 	"released": false,
+	"codefrozen": false,
 	"index": 0
     },
     "jbds_bucket_versions": {

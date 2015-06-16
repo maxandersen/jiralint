@@ -1,4 +1,9 @@
 {
+    "ds_freeze_unresolved": {
+        "description": "Unresolved issues in frozen versions", 
+        "id": "12323974", 
+        "jql": "filter='ds_freeze' and filter='ds_unresolved'"
+    }, 
     "ds_maint_noack": {
         "description": "issues that are missing ack or nack", 
         "id": "12323333", 
@@ -53,9 +58,5 @@
         "description": "unresolved work for next version", 
         "id": "12323074", 
         "jql": "filter='ds_next_master' and filter='ds_unresolved'"
-    },
-    "ds_freeze_unresolved": {
-	"description": "Unresolved issues in frozen versions"
-	"jql": "filter='ds_freeze' and filter='ds_unresolved'"
     }
 }
