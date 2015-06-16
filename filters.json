@@ -1,4 +1,8 @@
 {
+    "ds_respin": {
+	"description": "Issues included in a respin (has label containing 'respin-[a-k]')"
+	"jql": "labels in ('respin-a', 'respin-b', 'respin-c', 'respin-d', 'respin-e', 'respin-f', 'respin-g', 'respin-h','respin-i', 'respin-j')"
+    },
     "ds_cdwtriage": {
         "description": "Issues are New and have no target release set", 
         "id": "12323016", 
