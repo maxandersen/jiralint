@@ -9,6 +9,11 @@
         "id": "12323031", 
         "jql": "((project = JBIDE AND fixVersion in ( %(jbide_freeze_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_freeze_versions)s )))"
     }, 
+    "ds_latest_freeze": {
+        "description": "Issues for next freeze", 
+        "id": "12324091", 
+        "jql": "((project = JBIDE AND fixVersion in ( %(jbide_latest_freeze_versions)s )) OR (project = JBDS AND fixVersion in ( %(jbds_latest_freeze_versions)s )))"
+    }, 
     "ds_lint_illegalfixversion": {
         "description": "illegal fix versions", 
         "id": "12323048", 

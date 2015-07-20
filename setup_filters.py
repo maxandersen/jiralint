@@ -52,6 +52,10 @@ def hasFieldOrNot(field, flag,v):
     #print "result : " + str(r)
     return r
 
+def dumpVersions(foundversions):
+    return str(len(foundversions))  + "->" + ", ".join(map(lambda v: v['name'], foundversions))
+
+
 def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, archived=None, hasStartDate=None, codefrozen=None, lowerLimit=None, upperLimit=None, index=None):
     """Return list of versions for a specific project matching a pattern and a list of optional filters.
 
@@ -88,38 +92,38 @@ def listVersions(project, pattern=".*", released=None, hasReleaseDate=None, arch
         if versionmatch.match(version['name']):
             foundversions.append(version)
 
-    #print "after versionmatch: " + str(len(foundversions))
+    print "after versionmatch: " + dumpVersions(foundversions)
     
     if released is not None:
         foundversions = filter(lambda v: released == v['released'], foundversions)
-        #print "after released: " + str(len(foundversions))
+        #print "after released: " + dumpVersions(foundversions)
     
     if hasReleaseDate is not None:
         foundversions = filter(lambda v: hasFieldOrNot('releaseDate', hasReleaseDate, v), foundversions)
-        #print "after hasReleaseDate: " + str(len(foundversions))
+        #print "after hasReleaseDate: " + dumpVersions(foundversions)
     
     if hasStartDate is not None:
         foundversions = filter(lambda v: hasFieldOrNot('startDate', hasStartDate, v), foundversions)
-        #print "after hasStartDate: " + str(len(foundversions))
+        #print "after hasStartDate: " + dumpVersions(foundversions)
     
     if archived is not None:
         foundversions = filter(lambda v: archived == v['archived'], foundversions)
-        #print "after archived: " + str(len(foundversions))
+        #print "after archived: " + dumpVersions(foundversions)
 
     if codefrozen is not None:
         foundversions = filter(lambda v: isCodefrozenToday(v, codefrozen), foundversions)
-        #print "after codefrozen: " + str(len(foundversions))
+        #print "after codefrozen: " + dumpVersions(foundversions)
     
     if upperLimit or lowerLimit:
         foundversions = foundversions[lowerLimit:upperLimit]
-        #print "after limits: " + str(len(foundversions))
+        #print "after limits: " + dumpVersions(foundversions)
     
     if index is not None:
         try:
             foundversions = [foundversions[index]]
         except IndexError:
             foundversions = []
-        print "after index: " + str(len(foundversions))
+        #print "after index: " + dumpVersions(foundversions)
     
     foundversions = map(lambda v: v['name'], foundversions)
     
