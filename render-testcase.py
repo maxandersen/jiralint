@@ -86,6 +86,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
             component_details = []
             component_lead_name = ""
             component_lead_email = ""
+            component_lead_names = ""
             for component in fields['components']:
                 # print component['id']
                 # https://issues.jboss.org/rest/api/2/component/12311294
@@ -98,6 +99,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
                     
                 component_name = str(component_data['name'])
                 component_lead_name = str(component_data['lead']['name'])
+                component_lead_names += "-" + xstr(component_lead_name)
                 component_lead_email = fetch_email(component_lead_name, options.unassignedjiraemail, email_addresses)
                 component_details.append({'name': component_name, 'lead': component_lead_name, 'email': component_lead_email})
             fix_version = ""
@@ -142,7 +144,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
 
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname", jira_key)
-            testcase.setAttribute("name", issue_type.lower().replace(" ","") + xstr(fix_version) + "." + assignee_name + "-" + xstr(component_lead_name))
+            testcase.setAttribute("name", issue_type.lower().replace(" ","") + xstr(fix_version) + "." + assignee_name + xstr(component_lead_names))
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jira_key
