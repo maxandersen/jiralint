@@ -142,7 +142,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
 
             testcase = doc.createElement("testcase")
             testcase.setAttribute("classname", jira_key)
-            testcase.setAttribute("name", issue_type.lower().replace(" ","") + xstr(fix_version) + "." + assignee_name)
+            testcase.setAttribute("name", issue_type.lower().replace(" ","") + xstr(fix_version) + "." + assignee_name + "-" + xstr(component_lead_name))
 
             o = urlparse(v['self'])
             url = o.scheme + "://" + o.netloc + "/browse/" + jira_key
