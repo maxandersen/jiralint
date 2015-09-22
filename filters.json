@@ -49,10 +49,6 @@
         "id": "12323018", 
         "jql": "'Target Release' is not EMPTY AND 'CDW pm_ack' = '?' AND resolution = Unresolved"
     }, 
-    "ds_needtriage": {
-        "description": "Issues has no fix version, should be triaged", 
-        "jql": "((project in (JBIDE, JBDS) and fixVersion is EMPTY) and resolution is EMPTY"
-    }, 
     "ds_next_maint": {
         "description": "Issues for next development in maintenance or master", 
         "id": "12323056", 
