@@ -168,7 +168,7 @@ def render(issue_type, issue_description, jira_env, issues, jql, options, email_
 
             error_text = "\n" + url + "\n" + \
                 "Summary: " + fields['summary'] + "\n\n" + \
-                ("Assignee(s): " + assignee_info if assignee_info else "Assignee: None set - please fix.") + "\n" + \
+                ("Assignee(s): " + assignee_info if assignee_info else "Assignee: None set.") + "\n" + \
                 ("Lead(s): " + lead_info + "\n" if lead_info else "") + \
                 ("Component(s): " + component_name if component_name else "Component: None set - please fix.") + "\n" + \
                 "Problem: " + issue_type + " - " + issue_description + "\n" + \
