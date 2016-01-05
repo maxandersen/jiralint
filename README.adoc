@@ -1,8 +1,9 @@
-Experiment where I'm trying to use Jenkins for early warnings/error detection in jiras.
+Experiment where I'm trying to use Jenkins for early warnings/error detection in jiras and other jira experiments.
 
 README     	     this file
 render-testcase.py   takes a report.json to render jira query results into junit.xml test reports   
 *.json               reports used by JBoss Tools team for detecting stale/non-triaged/incorrect jiras
+bzira.py             utility to make bugs returned by bugzilla query show up in jira to use in sprint-planning.
 
 Steps to use it:
 
@@ -35,5 +36,20 @@ Each entry has a report name used for identifying its results and then a jql for
 Now for each report a -test.xml file will be created containing "test failures" for each jira matching the result.
 
 . Setup a Jenkins build which executes the above script and enable junit reporting and you got automatic notification and tracking to help improve your jira content.
+
+
+== Bugzilla in Jira for sprint planning
+
+`bzira.py` is an experiemnt that takes the issues returned by a bugzilla query to make available in jira for prioritization. 
+Main usecase is for JBoss Tools team to see Eclipse bugzillas together with its planned jiras for sprint planning.
+
+The created issues are purely intended for sprint planning - not for mirroring. This makes the setup and mechanics simpler and require much less issues like
+double comments etc. 
+
+To run bzira:
+
+`python -i bzira.py -u username -p password`
+
+For now this script is hardcoded to staging Jira and a single RHT query.
 
 Have fun! 
