@@ -53,7 +53,6 @@ def create_proxy_jira_dict(options, bug):
         #'fixVersions' : [{ "name" : jbide_fixversion }],
         'components' : [{ "name" : bug.product }]
     }
-    raise ValueError('blah')
     return issue_dict
 
 bz2jira_priority = {
