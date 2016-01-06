@@ -46,7 +46,7 @@ def create_proxy_jira_dict(options, bug):
     issue_dict = {
         'project' : { 'key': 'ERT' },
         'summary' : bug.summary + ' [EBZ#' + str(bug.id) + "]",
-      #  'description' : bug.comment,
+        'description' : bug.getcomments()[0]['text'], # todo - this loads all comments...everytime. probably should wait to do this once it is absolutely needed.
         'issuetype' : { 'name' : 'Task' }, # No notion of types in bugzilla just taking the most generic/non-specifc in jira
         'priority' : { 'name' : bz_to_jira_priority(options, bug) },
         'labels' :   [ 'bzira' ],
