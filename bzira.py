@@ -49,7 +49,7 @@ def create_proxy_jira_dict(options, bug):
         'description' : bug.getcomments()[0]['text'], # todo - this loads all comments...everytime. probably should wait to do this once it is absolutely needed.
         'issuetype' : { 'name' : 'Task' }, # No notion of types in bugzilla just taking the most generic/non-specifc in jira
         'priority' : { 'name' : bz_to_jira_priority(options, bug) },
-        'labels' :   [ 'bzira' ],
+        'labels' :   [ 'bzira', bug.component ],
         #'fixVersions' : [{ "name" : jbide_fixversion }],
         'components' : [{ "name" : bug.product }]
     }
