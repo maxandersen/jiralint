@@ -5,9 +5,11 @@ import urllib
 import pprint
 from common import shared
 import pickle
+import re
+
 
 httpdebug = False
-
+ 
 ### Enables http debugging
 if httpdebug:
     import requests
@@ -26,7 +28,6 @@ def lookup_proxy(options, bug):
 
     #TODO: should keep a local cache from BZ->JIRA to avoid constant querying
     payload = {'jql': 'project = ERT and summary ~ \'EBZ#' + str(bug.id) +'\'', 'maxResults' : 5}
-    print payload
     data = shared.jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
     count = len(data['issues'])
     if(count == 0):
@@ -53,8 +54,31 @@ def create_proxy_jira_dict(options, bug):
         #'fixVersions' : [{ "name" : jbide_fixversion }],
         'components' : [{ "name" : bug.product }]
     }
+
+    bz_to_jira_version(options, bug)
     return issue_dict
 
+
+bzprod_version_map = {
+    "JSDT" : (lambda version: re.sub(r"3.8 (.*)", r"Neon 4.5 M\1", version)),
+    "WTP Source Editing" : (lambda version: "WOOT?"),
+    "WTP Incubator" : (lambda version: "incube?"),
+    "Platform" : (lambda version: re.sub(r"4.6 (.*)", r"Neon \1", version)),
+    "Linux Tools" : (lambda version: "DOCKer!")
+    }
+
+def bz_to_jira_version(options, bug):
+    bzversion = bug.target_milestone
+
+    if bug.product in bzprod_version_map:
+        b2j = bzprod_version_map[bug.product]
+        
+        print bug.product + "/" + bzversion + "->" + b2j(bzversion)
+    else:
+        print "WARNING: No version mapper for " + bug.product
+
+    
+    
 bz2jira_priority = {
      'blocker' : 'Blocker',
      'critical' : 'Critical',
@@ -98,7 +122,7 @@ bugs = []
 components = jira.project_components('ERT')
 
 for bug in issues:
-    print '%s - %s [%s, %s, [%s]] -> %s' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.weburl)
+    #print '%s - %s [%s, %s, [%s]] -> %s' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.weburl)
 
     issue_dict = create_proxy_jira_dict(options, bug)
 
