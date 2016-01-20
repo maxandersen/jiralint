@@ -6,7 +6,9 @@ import pprint
 from common import shared
 import pickle
 import re
-
+from datetime import datetime
+import time
+import pytz
 
 httpdebug = False
  
@@ -35,7 +37,7 @@ def lookup_proxy(options, bug):
     elif(count == 1):
         return data['issues'][0]
     else:
-        print "WARNING: Multiple issues found for " + str(bug.id)
+        print "[WARN] Multiple issues found for " + str(bug.id)
         print data['issues']
         return 
 
@@ -43,6 +45,14 @@ def lookup_proxy(options, bug):
 ## Create the jira dict object for how the bugzilla *should* look like
 def create_proxy_jira_dict(options, bug):
 
+    # "fixVersions": [{"self":"https://issues.stage.jboss.org/rest/api/2/version/12326594","id":"12326594","description":"Requires Eclipse Mars R -> JBDS 9.0.0.Beta2 (codefreeze: 2015-07-16)","name":"4.3.0.Beta2","archived":false,"released":false,"releaseDate":"2015-07-27"}]
+    # "fixVersions": [{"self":"https://issues.jboss.org/rest/api/2/version/12328862","id":"12328862","description":"Requires Mars.2 4.5.2.RC4 (codefreeze: 2016-02-18)","name":"4.3.1.CR1","archived":false,"released":false}]
+
+    bz_to_jira_version_result = bz_to_jira_version(options, bug)
+    if (bz_to_jira_version_result == "---" or bz_to_jira_version_result == "UNKNOWN"):
+        fixversion=[]
+    else:
+        fixversion=[{ "name" : bz_to_jira_version_result }]
     
     issue_dict = {
         'project' : { 'key': 'ERT' },
@@ -51,20 +61,25 @@ def create_proxy_jira_dict(options, bug):
         'issuetype' : { 'name' : 'Task' }, # No notion of types in bugzilla just taking the most generic/non-specifc in jira
         'priority' : { 'name' : bz_to_jira_priority(options, bug) },
         'labels' :   [ 'bzira', bug.component ],
-        #'fixVersions' : [{ "name" : jbide_fixversion }],
+        'fixVersions' : fixversion,
         'components' : [{ "name" : bug.product }]
     }
 
-    bz_to_jira_version(options, bug)
     return issue_dict
 
-
 bzprod_version_map = {
-    "JSDT" : (lambda version: re.sub(r"3.8 (.*)", r"Neon 4.5 M\1", version)),
-    "WTP Source Editing" : (lambda version: "WOOT?"),
-    "WTP Incubator" : (lambda version: "incube?"),
-    "Platform" : (lambda version: re.sub(r"4.6 (.*)", r"Neon \1", version)),
-    "Linux Tools" : (lambda version: "DOCKer!")
+    "WTP Incubator" : (lambda version: "UNKNOWN"),
+
+    # TODO ensure this works for 3.8.x -> Neon.x 
+    "JSDT" : (lambda version: re.sub(r"3.8(.*)", r"Neon\1", version)),
+    "WTP Source Editing" : (lambda version: re.sub(r"3.8(.*)", r"Neon\1", version)),
+
+    # TODO ensure this works for 4.6.x -> Neon.x 
+    "Platform" : (lambda version: re.sub(r"4.6(.*)", r"Neon\1", version)),
+
+    # 4.2.1 -> Mars.2
+    # 5.0.0 -> Neon.?
+    "Linux Tools" : (lambda version: "UNKNOWN")
     }
 
 def bz_to_jira_version(options, bug):
@@ -72,13 +87,17 @@ def bz_to_jira_version(options, bug):
 
     if bug.product in bzprod_version_map:
         b2j = bzprod_version_map[bug.product]
-        
-        print bug.product + "/" + bzversion + "->" + b2j(bzversion)
+        if (b2j(bzversion) == "UNKNOWN"):
+            print "[WARN] Unknown mapper for " + bug.product + " / " + bzversion + " -> " + b2j(bzversion)
+        elif (bzversion == "---"):
+            print "[WARN] Target milestone not set for " + bug.product + " / " + bzversion
+        else:
+            if (options.verbose):
+                print "[DEBUG] " + "Mapper: " + bug.product + " / " + bzversion + " -> " + b2j(bzversion)
     else:
-        print "WARNING: No version mapper for " + bug.product
+        print "[WARN] No version mapper found for " + bug.product
+    return b2j(bzversion)
 
-    
-    
 bz2jira_priority = {
      'blocker' : 'Blocker',
      'critical' : 'Critical',
@@ -92,7 +111,7 @@ bz2jira_priority = {
 def bz_to_jira_priority(options, bug):
     return bz2jira_priority[bug.severity] # jira is dumb. jira priority is severity.
 
-usage = "usage: %prog -u <user> -p <password> \nCreates proxy issues for bugzilla issues in jira"
+usage = "Usage: %prog -u <user> -p <password> \nCreates proxy issues for bugzilla issues in jira"
 
 parser = OptionParser(usage)
 parser.add_option("-u", "--user", dest="username", help="jira username")
@@ -100,69 +119,109 @@ parser.add_option("-p", "--pwd", dest="password", help="jira password")
 parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
 parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually creating issues")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="be verbose")
+parser.add_option("-m", "--min-age", dest="minimum_age_to_process", default="7", action="store_true", help="if bugzilla has not changed in more than X days, do not process it")
 
 (options, args) = parser.parse_args()
 
 if not options.username or not options.password:
     parser.error("Missing username or password")
 
-print "Logging in to jira...."
-jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
+# get current datetime in UTC for comparison to bug.delta_ts, which is also in UTC; use this diff to ignore processing old bugzillas
+now = datetime.utcnow()
+if (options.verbose):
+    print "[DEBUG] " + "Current datetime: " + str(now) + " (UTC)"
+    print "" 
 
+# to query only 1 week's worth of recent changes:
+# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1w&status_whiteboard=RHT&order=changeddate%20DESC%2C
+# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=7d&status_whiteboard=RHT&order=changeddate%20DESC%2C
+# to query only 1 day's worth of recent changes:
+# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1d&status_whiteboard=RHT&order=changeddate%20DESC%2C
+# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=24h&status_whiteboard=RHT&order=changeddate%20DESC%2C
+# but since that doesn't work (chfieldfrom not supported), do a big query and then filter it for recent changes.
 
-bz = bugzilla.Bugzilla(url="https://bugs.eclipse.org/bugs/xmlrpc.cgi")
-
-query = bz.url_to_query("https://bugs.eclipse.org/bugs/buglist.cgi?status_whiteboard=RHT")
- 
+# TODO cache results locally so we don't have to keep hitting live server to do iterations
+bzserver = "https://bugs.eclipse.org/"
+bz = bugzilla.Bugzilla(url=bzserver + "bugs/xmlrpc.cgi")
+if (options.verbose):
+    print "[DEBUG] " + "Querying bugzilla: " + bzserver + "bugs/buglist.cgi?status_whiteboard=RHT"
+query = bz.url_to_query(bzserver + "bugs/buglist.cgi?status_whiteboard=RHT")
 issues = bz.query(query)
-
+if (options.verbose):
+    print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
+    print "" 
 
 bugs = []
 
+if (options.verbose):
+    print "[DEBUG] " + "Logging in to " + options.jiraserver
+jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
 components = jira.project_components('ERT')
+if (options.verbose):
+    print "[DEBUG] " + "Found " + str(len(components)) + " components in JIRA"
+    print "" 
 
 for bug in issues:
-    #print '%s - %s [%s, %s, [%s]] -> %s' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.weburl)
+    # bug.delta_ts = bugzilla last changed date, eg., 20160106T09:50:33
 
-    issue_dict = create_proxy_jira_dict(options, bug)
+    # print '%s - %s [%s, %s, [%s]] {%s} -> %s' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl)
 
-   ## ensure the product name exists as a component
-    if(not next((c for c in components if bug.product == c.name), None)): 
-        comp = jira.create_component(bug.product, "ERT")
-        components = jira.project_components('ERT')
-    
-    proxyissue = lookup_proxy(options, bug)
-    
-    if(proxyissue):
-        print str(bug.id) + " already proxied at " + proxyissue['key']
-        #print str(proxyissue)
-        fields = {}
-        if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
-            #TODO: this check for existence in list of components
-            # but then overwrites anything else. Problematic or not ?
-            updcomponents = [{"name" : bug.product}]
-            fields["components"] = updcomponents
+    changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
+    difference = now - changeddate
 
-        if len(fields)>0:
-            print "Updating " + proxyissue['key'] + " with " + str(fields)
-            isbug = jira.issue(proxyissue['key'])
-            isbug.update(fields)
-            
+    if (difference.days > int(options.minimum_age_to_process)):
+        #if (options.verbose):
+        #    print "[DEBUG] " + bzserver + str(bug.id) + " last changed " + str(difference.days) + " days ago on " + str(changeddate) + ". Skip processing old issue (assume already processed)."
+        continue
     else:
-        if(options.dryrun):
-            print "Wanted to create " + str(issue_dict)
-        else:
-            newissue = jira.create_issue(fields=issue_dict)
-            link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
-            jira.add_simple_link(newissue,
-                                 object=link)
-            print "Created " + newissue.key
-            bugs.append(newissue)
+        if (options.verbose):
+            if (difference.days < 1):
+                print "[DEBUG] " + bzserver + str(bug.id) + " last changed " + str(difference.seconds) + " seconds ago on " + str(changeddate)
+            else:
+                print "[DEBUG] " + bzserver + str(bug.id) + " last changed " + str(difference.days) + " days ago on " + str(changeddate)
+        issue_dict = create_proxy_jira_dict(options, bug)
 
-raw_input("Press Enter to delete...or ctrl+c to be ok with the created content")
-
-for b in bugs:
-    print "Deleting " + str(b)
-    b.delete()
-    
+       ## ensure the product name exists as a component
+        if(not next((c for c in components if bug.product == c.name), None)): 
+            comp = jira.create_component(bug.product, "ERT")
+            components = jira.project_components('ERT')
         
+        proxyissue = lookup_proxy(options, bug)
+        
+        if(proxyissue):
+            print "[WARN] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
+            #print str(proxyissue)
+            fields = {}
+            if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
+                #TODO: this check for existence in list of components
+                # but then overwrites anything else. Problematic or not ?
+                updcomponents = [{"name" : bug.product}]
+                fields["components"] = updcomponents
+
+            # TODO this doesn't seem to actually change a fixversion field
+            if len(fields)>0:
+                print "Updating " + proxyissue['key'] + " with " + str(fields)
+                isbug = jira.issue(proxyissue['key'])
+                isbug.update(fields)
+                
+        else:
+            if(options.dryrun is not None):
+                print "[INFO] Dry Run:"
+                print "[INFO] " + str(issue_dict)
+            else:
+                newissue = jira.create_issue(fields=issue_dict)
+                link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
+                print "[INFO] Create " + options.jiraserver + "/browse/" + newissue.key
+                jira.add_simple_link(newissue, object=link)
+                bugs.append(newissue)
+
+    print ""
+
+
+# Prompt user to accept new JIRAs or delete them
+accept = raw_input("Accept created JIRAs? [Y/n] ")
+if accept.capitalize() in ["N"]:
+    for b in bugs:
+        print "[INFO] " + "Delete " + options.jiraserver + "/browse/" + str(b)
+        b.delete()
+

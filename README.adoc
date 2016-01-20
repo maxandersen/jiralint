@@ -46,6 +46,14 @@ Main usecase is for JBoss Tools team to see Eclipse bugzillas together with its 
 The created issues are purely intended for sprint planning - not for mirroring. This makes the setup and mechanics simpler and require much less issues like
 double comments etc. 
 
+Requirements:
+
+As root, run pip to install new or upgrade existing python modules:
+
+`# pip install --upgrade bugzilla bugzillatools python-bugzilla jiraclient jira-python jira jiracli jira-cli requests`
+
+If that doesn't work, see complete list of python modules here: https://gist.github.com/nickboldt/a3ba926186fb6b7442f6/d4297f984871ea8dbd09ad15ac197fb72e709053
+
 To run bzira:
 
 `python -i bzira.py -u username -p password`
