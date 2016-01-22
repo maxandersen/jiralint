@@ -7,6 +7,7 @@ from common import shared
 import pickle
 import re
 from datetime import datetime
+from datetime import timedelta
 import time
 import pytz
 
@@ -119,7 +120,9 @@ parser.add_option("-p", "--pwd", dest="password", help="jira password")
 parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
 parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually creating issues")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="be verbose")
-parser.add_option("-m", "--min-age", dest="minimum_age_to_process", default="7", action="store_true", help="if bugzilla has not changed in more than X days, do not process it")
+# TODO should we support min age in hours instead of days? How often do we want to run this script?
+parser.add_option("-m", "--min-age", dest="minimum_age_to_process", default="7", help="if bugzilla has not changed in more than X days, do not process it")
+parser.add_option("-S", "--start-date", dest="start_date", default="", help="use this start date (yyyy-mm-dd) as the threshhold from which to query for bugzillas")
 
 (options, args) = parser.parse_args()
 
@@ -132,20 +135,24 @@ if (options.verbose):
     print "[DEBUG] " + "Current datetime: " + str(now) + " (UTC)"
     print "" 
 
-# to query only 1 week's worth of recent changes:
+# calculate relative date if options.start_date not provided but minimum_age_to_process is provided
+if (options.start_date):
+    last_change_time = datetime.strptime(str(options.start_date),'%Y-%m-%d')
+elif (options.minimum_age_to_process):
+    last_change_time = now - timedelta(days=int(options.minimum_age_to_process))
+
+# to query only 1 week, 1 day, 3hrs of recent changes:
 # https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1w&status_whiteboard=RHT&order=changeddate%20DESC%2C
-# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=7d&status_whiteboard=RHT&order=changeddate%20DESC%2C
-# to query only 1 day's worth of recent changes:
 # https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1d&status_whiteboard=RHT&order=changeddate%20DESC%2C
-# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=24h&status_whiteboard=RHT&order=changeddate%20DESC%2C
-# but since that doesn't work (chfieldfrom not supported), do a big query and then filter it for recent changes.
+# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=3h&status_whiteboard=RHT&order=changeddate%20DESC%2C
+# but since chfieldfrom not supported in xmlrpc, use last_change_time instead with specific date, not relative one
 
 # TODO cache results locally so we don't have to keep hitting live server to do iterations
 bzserver = "https://bugs.eclipse.org/"
 bz = bugzilla.Bugzilla(url=bzserver + "bugs/xmlrpc.cgi")
 if (options.verbose):
-    print "[DEBUG] " + "Querying bugzilla: " + bzserver + "bugs/buglist.cgi?status_whiteboard=RHT"
-query = bz.url_to_query(bzserver + "bugs/buglist.cgi?status_whiteboard=RHT")
+    print "[DEBUG] " + "Querying bugzilla: " + bzserver + "bugs/buglist.cgi?status_whiteboard=RHT&chfieldfrom=" + last_change_time.strftime('%Y-%m-%d+%H:%M')
+query = bz.url_to_query(bzserver + "bugs/buglist.cgi?status_whiteboard=RHT&last_change_time=" + last_change_time.strftime('%Y-%m-%d+%H:%M'))
 issues = bz.query(query)
 if (options.verbose):
     print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
@@ -219,9 +226,10 @@ for bug in issues:
 
 
 # Prompt user to accept new JIRAs or delete them
-accept = raw_input("Accept created JIRAs? [Y/n] ")
-if accept.capitalize() in ["N"]:
-    for b in bugs:
-        print "[INFO] " + "Delete " + options.jiraserver + "/browse/" + str(b)
-        b.delete()
+if(options.dryrun is None): 
+    accept = raw_input("Accept created JIRAs? [Y/n] ")
+    if accept.capitalize() in ["N"]:
+        for b in bugs:
+            print "[INFO] " + "Delete " + options.jiraserver + "/browse/" + str(b)
+            b.delete()
 
