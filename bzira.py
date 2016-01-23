@@ -10,9 +10,12 @@ from datetime import datetime
 from datetime import timedelta
 import time
 import pytz
+import sys
 
 httpdebug = False
- 
+
+NO_VERSION = "!_NO_VERSION_!"
+
 ### Enables http debugging
 if httpdebug:
     import requests
@@ -46,14 +49,11 @@ def lookup_proxy(options, bug):
 ## Create the jira dict object for how the bugzilla *should* look like
 def create_proxy_jira_dict(options, bug):
 
-    # "fixVersions": [{"self":"https://issues.stage.jboss.org/rest/api/2/version/12326594","id":"12326594","description":"Requires Eclipse Mars R -> JBDS 9.0.0.Beta2 (codefreeze: 2015-07-16)","name":"4.3.0.Beta2","archived":false,"released":false,"releaseDate":"2015-07-27"}]
-    # "fixVersions": [{"self":"https://issues.jboss.org/rest/api/2/version/12328862","id":"12328862","description":"Requires Mars.2 4.5.2.RC4 (codefreeze: 2016-02-18)","name":"4.3.1.CR1","archived":false,"released":false}]
+    jiraversion  = bz_to_jira_version(options, bug)
 
-    bz_to_jira_version_result = bz_to_jira_version(options, bug)
-    if (bz_to_jira_version_result == "---" or bz_to_jira_version_result == "UNKNOWN"):
-        fixversion=[]
-    else:
-        fixversion=[{ "name" : bz_to_jira_version_result }]
+    fixversion=[]
+    if (jiraversion and jiraversion != NO_VERSION): 
+        fixversion=[{ "name" : jiraversion }]
     
     issue_dict = {
         'project' : { 'key': 'ERT' },
@@ -68,8 +68,20 @@ def create_proxy_jira_dict(options, bug):
 
     return issue_dict
 
+def map_linuxtools(version):
+    #TODO: make this use real neon versions.
+    #TODO: curently based on map from xcoulon
+    versions = {
+        "4.2.1" : "Mars.2",
+        "4.2" : "Mars.2",
+        "4.1" : "Mars.1",
+        "4.0" : "Mars",
+        "---" : NO_VERSION
+        }
+    return versions.get(version, None)
+
 bzprod_version_map = {
-    "WTP Incubator" : (lambda version: "UNKNOWN"),
+    "WTP Incubator" : (lambda version: NO_VERSION),
 
     # TODO ensure this works for 3.8.x -> Neon.x 
     "JSDT" : (lambda version: re.sub(r"3.8(.*)", r"Neon\1", version)),
@@ -80,24 +92,32 @@ bzprod_version_map = {
 
     # 4.2.1 -> Mars.2
     # 5.0.0 -> Neon.?
-    "Linux Tools" : (lambda version: "UNKNOWN")
+    "Linux Tools" : map_linuxtools,
+
+    "m2e" : (lambda version: NO_VERSION)
+    
     }
 
-def bz_to_jira_version(options, bug):
-    bzversion = bug.target_milestone
 
+    
+def bz_to_jira_version(options, bug):
+    """Return corresponding jira version for bug version. None means mapping not known. NO_VERSION means it has no fixversion."""
+    bzversion = bug.target_milestone
+    b2j = None
+    
     if bug.product in bzprod_version_map:
         b2j = bzprod_version_map[bug.product]
-        if (b2j(bzversion) == "UNKNOWN"):
-            print "[WARN] Unknown mapper for " + bug.product + " / " + bzversion + " -> " + b2j(bzversion)
-        elif (bzversion == "---"):
-            print "[WARN] Target milestone not set for " + bug.product + " / " + bzversion
-        else:
+        jiraversion = b2j(bzversion)
+        if (jiraversion):
             if (options.verbose):
-                print "[DEBUG] " + "Mapper: " + bug.product + " / " + bzversion + " -> " + b2j(bzversion)
+                print "[DEBUG] " + "Mapper: " + bug.product + " / " + bzversion + " -> " + str(jiraversion)
+            return jiraversion
+        else:
+            print "[ERROR] Unknown version for " + bug.product + " / " + bzversion
     else:
-        print "[WARN] No version mapper found for " + bug.product
-    return b2j(bzversion)
+        print "[ERROR] No version mapper found for " + bug.product
+
+    
 
 bz2jira_priority = {
      'blocker' : 'Blocker',
@@ -108,26 +128,37 @@ bz2jira_priority = {
      'trivial' : 'Trivial',
      'enhancement' : 'Trivial' #TODO: is bz enhancement really indictor for type is feature or is it purely a priority/complexity flag ?
     }
+
     
 def bz_to_jira_priority(options, bug):
     return bz2jira_priority[bug.severity] # jira is dumb. jira priority is severity.
 
-usage = "Usage: %prog -u <user> -p <password> \nCreates proxy issues for bugzilla issues in jira"
+def parse_options():
+    usage = "Usage: %prog -u <user> -p <password> \nCreates proxy issues for bugzilla issues in jira"
 
-parser = OptionParser(usage)
-parser.add_option("-u", "--user", dest="username", help="jira username")
-parser.add_option("-p", "--pwd", dest="password", help="jira password")
-parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
-parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually creating issues")
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="be verbose")
-# TODO should we support min age in hours instead of days? How often do we want to run this script?
-parser.add_option("-m", "--min-age", dest="minimum_age_to_process", default="7", help="if bugzilla has not changed in more than X days, do not process it")
-parser.add_option("-S", "--start-date", dest="start_date", default="", help="use this start date (yyyy-mm-dd) as the threshhold from which to query for bugzillas")
+    parser = OptionParser(usage)
+    parser.add_option("-u", "--user", dest="username", help="jira username")
+    parser.add_option("-p", "--pwd", dest="password", help="jira password")
+    parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
+    parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually creating issues")
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="be verbose")
+    # TODO should we support min age in hours instead of days? How often do we want to run this script?
+    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if bugzilla has not changed in more than X days, do not process it")
+    parser.add_option("-S", "--start-date", dest="start_date", default="", help="use this start date (yyyy-mm-dd) as the threshhold from which to query for bugzillas")
 
-(options, args) = parser.parse_args()
+    (options, args) = parser.parse_args()
 
-if not options.username or not options.password:
-    parser.error("Missing username or password")
+    if not options.username or not options.password:
+        parser.error("Missing username or password")
+
+    return options
+
+
+options = parse_options()
+
+# TODO cache results locally so we don't have to keep hitting live server to do iterations
+bzserver = "https://bugs.eclipse.org/"
+basequery = bzserver + "bugs/buglist.cgi?status_whiteboard=RHT"
 
 # get current datetime in UTC for comparison to bug.delta_ts, which is also in UTC; use this diff to ignore processing old bugzillas
 now = datetime.utcnow()
@@ -140,28 +171,31 @@ if (options.start_date):
     last_change_time = datetime.strptime(str(options.start_date),'%Y-%m-%d')
 elif (options.minimum_age_to_process):
     last_change_time = now - timedelta(days=int(options.minimum_age_to_process))
-
+else:
+    last_change_time = None
+    
 # to query only 1 week, 1 day, 3hrs of recent changes:
 # https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1w&status_whiteboard=RHT&order=changeddate%20DESC%2C
 # https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1d&status_whiteboard=RHT&order=changeddate%20DESC%2C
 # https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=3h&status_whiteboard=RHT&order=changeddate%20DESC%2C
 # but since chfieldfrom not supported in xmlrpc, use last_change_time instead with specific date, not relative one
 
-# TODO cache results locally so we don't have to keep hitting live server to do iterations
-bzserver = "https://bugs.eclipse.org/"
+if (last_change_time):
+    query = basequery + "&last_change_time=" + last_change_time.strftime('%Y-%m-%d+%H:%M')
+else:
+    query = basequery
+    
 bz = bugzilla.Bugzilla(url=bzserver + "bugs/xmlrpc.cgi")
-if (options.verbose):
-    print "[DEBUG] " + "Querying bugzilla: " + bzserver + "bugs/buglist.cgi?status_whiteboard=RHT&chfieldfrom=" + last_change_time.strftime('%Y-%m-%d+%H:%M')
-query = bz.url_to_query(bzserver + "bugs/buglist.cgi?status_whiteboard=RHT&last_change_time=" + last_change_time.strftime('%Y-%m-%d+%H:%M'))
-issues = bz.query(query)
-if (options.verbose):
-    print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
-    print "" 
+
+print "[DEBUG] " + "Querying bugzilla: " + query
+    
+issues = bz.query(bz.url_to_query(query))
+
+print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
 
 bugs = []
 
-if (options.verbose):
-    print "[DEBUG] " + "Logging in to " + options.jiraserver
+print "[INFO] " + "Logging in to " + options.jiraserver
 jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
 components = jira.project_components('ERT')
 if (options.verbose):
@@ -171,58 +205,53 @@ if (options.verbose):
 for bug in issues:
     # bug.delta_ts = bugzilla last changed date, eg., 20160106T09:50:33
 
-    # print '%s - %s [%s, %s, [%s]] {%s} -> %s' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl)
-
+    
     changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
     difference = now - changeddate
 
-    if (difference.days > int(options.minimum_age_to_process)):
-        #if (options.verbose):
-        #    print "[DEBUG] " + bzserver + str(bug.id) + " last changed " + str(difference.days) + " days ago on " + str(changeddate) + ". Skip processing old issue (assume already processed)."
-        continue
+    if(options.verbose):
+        print '[DEBUG] %s - %s [%s, %s, [%s]] {%s} -> %s (%s)' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl, difference)
     else:
-        if (options.verbose):
-            if (difference.days < 1):
-                print "[DEBUG] " + bzserver + str(bug.id) + " last changed " + str(difference.seconds) + " seconds ago on " + str(changeddate)
-            else:
-                print "[DEBUG] " + bzserver + str(bug.id) + " last changed " + str(difference.days) + " days ago on " + str(changeddate)
-        issue_dict = create_proxy_jira_dict(options, bug)
-
-       ## ensure the product name exists as a component
-        if(not next((c for c in components if bug.product == c.name), None)): 
-            comp = jira.create_component(bug.product, "ERT")
-            components = jira.project_components('ERT')
+        sys.stdout.write('.')
         
-        proxyissue = lookup_proxy(options, bug)
-        
-        if(proxyissue):
-            print "[WARN] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
-            #print str(proxyissue)
-            fields = {}
-            if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
-                #TODO: this check for existence in list of components
-                # but then overwrites anything else. Problematic or not ?
-                updcomponents = [{"name" : bug.product}]
-                fields["components"] = updcomponents
+    issue_dict = create_proxy_jira_dict(options, bug)
 
-            # TODO this doesn't seem to actually change a fixversion field
-            if len(fields)>0:
-                print "Updating " + proxyissue['key'] + " with " + str(fields)
-                isbug = jira.issue(proxyissue['key'])
-                isbug.update(fields)
-                
+    
+    ## ensure the product name exists as a component
+    if(not next((c for c in components if bug.product == c.name), None)): 
+        comp = jira.create_component(bug.product, "ERT")
+        components = jira.project_components('ERT')
+        
+    proxyissue = lookup_proxy(options, bug)
+        
+    if(proxyissue):
+        if(options.verbose):
+            print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
+        #print str(proxyissue)
+        fields = {}
+        if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
+            #TODO: this check for existence in list of components
+            # but then overwrites anything else. Problematic or not ?
+            updcomponents = [{"name" : bug.product}]
+            fields["components"] = updcomponents
+
+        # TODO this doesn't seem to actually change a fixversion field
+        if len(fields)>0:
+            print "Updating " + proxyissue['key'] + " with " + str(fields)
+            isbug = jira.issue(proxyissue['key'])
+            isbug.update(fields)
+    
+    else:
+        if(options.dryrun is not None):
+            print "[INFO] Want to create jira for " + str(bug)
+            if(options.verbose):
+                print "[DEBUG] " + str(issue_dict)
         else:
-            if(options.dryrun is not None):
-                print "[INFO] Dry Run:"
-                print "[INFO] " + str(issue_dict)
-            else:
-                newissue = jira.create_issue(fields=issue_dict)
-                link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
-                print "[INFO] Create " + options.jiraserver + "/browse/" + newissue.key
-                jira.add_simple_link(newissue, object=link)
-                bugs.append(newissue)
-
-    print ""
+            newissue = jira.create_issue(fields=issue_dict)
+            link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
+            print "[INFO] Created " + options.jiraserver + "/browse/" + newissue.key
+            jira.add_simple_link(newissue, object=link)
+            bugs.append(newissue)
 
 
 # Prompt user to accept new JIRAs or delete them
