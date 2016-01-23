@@ -54,14 +54,19 @@ def create_proxy_jira_dict(options, bug):
     fixversion=[]
     if (jiraversion and jiraversion != NO_VERSION): 
         fixversion=[{ "name" : jiraversion }]
-    
+
+    labels=['bzira']
+    labels.append(bug.component)
+    if(bug.target_milestone and bug.target_milestone!="---"):
+        labels.append(bug.target_milestone.replace(" ", "_")) #labels not allowed to have spaces in it.
+
     issue_dict = {
         'project' : { 'key': 'ERT' },
         'summary' : bug.summary + ' [EBZ#' + str(bug.id) + "]",
         'description' : bug.getcomments()[0]['text'], # todo - this loads all comments...everytime. probably should wait to do this once it is absolutely needed.
         'issuetype' : { 'name' : 'Task' }, # No notion of types in bugzilla just taking the most generic/non-specifc in jira
         'priority' : { 'name' : bz_to_jira_priority(options, bug) },
-        'labels' :   [ 'bzira', bug.component ],
+        'labels' :   labels,
         'fixVersions' : fixversion,
         'components' : [{ "name" : bug.product }]
     }
