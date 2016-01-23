@@ -16,6 +16,9 @@ httpdebug = False
 
 NO_VERSION = "!_NO_VERSION_!"
 
+components = []
+versions = []
+
 ### Enables http debugging
 if httpdebug:
     import requests
@@ -52,8 +55,24 @@ def create_proxy_jira_dict(options, bug):
     jiraversion  = bz_to_jira_version(options, bug)
 
     fixversion=[]
+
+    ## check version exists, if not don't create proxy jira.
+    if(not next((v for v in versions if jiraversion == v.name), None)):
+        if(jiraversion and jiraversion != NO_VERSION): 
+            print "[ERROR] Version " + jiraversion + " not found in ERT. Please create it or fix the mapping. Bug: " + str(bug)
+            return
+
+    ## TODO: make this logic more clear.
+    ## for now we have the same test twice to aviod None to fall through.
     if (jiraversion and jiraversion != NO_VERSION): 
         fixversion=[{ "name" : jiraversion }]
+
+    ## ensure the product name exists as a component
+    global components
+    if(not next((c for c in components if bug.product == c.name), None)): 
+        comp = jira.create_component(bug.product, "ERT")
+        components = jira.project_components('ERT')
+
 
     labels=['bzira']
     labels.append(bug.component)
@@ -202,9 +221,11 @@ bugs = []
 
 print "[INFO] " + "Logging in to " + options.jiraserver
 jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
+
+versions = jira.project_versions('ERT')
 components = jira.project_components('ERT')
 if (options.verbose):
-    print "[DEBUG] " + "Found " + str(len(components)) + " components in JIRA"
+    print "[DEBUG] " + "Found " + str(len(components)) + " components and " + str(len(versions)) + " versions in JIRA"
     print "" 
 
 for bug in issues:
@@ -221,43 +242,37 @@ for bug in issues:
         
     issue_dict = create_proxy_jira_dict(options, bug)
 
-    
-    ## ensure the product name exists as a component
-    if(not next((c for c in components if bug.product == c.name), None)): 
-        comp = jira.create_component(bug.product, "ERT")
-        components = jira.project_components('ERT')
+    if(issue_dict):
+        proxyissue = lookup_proxy(options, bug)
         
-    proxyissue = lookup_proxy(options, bug)
-        
-    if(proxyissue):
-        if(options.verbose):
-            print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
-        #print str(proxyissue)
-        fields = {}
-        if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
-            #TODO: this check for existence in list of components
-            # but then overwrites anything else. Problematic or not ?
-            updcomponents = [{"name" : bug.product}]
-            fields["components"] = updcomponents
-
-        # TODO this doesn't seem to actually change a fixversion field
-        if len(fields)>0:
-            print "Updating " + proxyissue['key'] + " with " + str(fields)
-            isbug = jira.issue(proxyissue['key'])
-            isbug.update(fields)
-    
-    else:
-        if(options.dryrun is not None):
-            print "[INFO] Want to create jira for " + str(bug)
+        if(proxyissue):
             if(options.verbose):
-                print "[DEBUG] " + str(issue_dict)
+                print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
+
+            fields = {}
+            if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
+                #TODO: this check for existence in list of components
+                # but then overwrites anything else. Problematic or not ?
+                updcomponents = [{"name" : bug.product}]
+                fields["components"] = updcomponents
+
+                # TODO this doesn't seem to actually change a fixversion field
+                if len(fields)>0:
+                    print "Updating " + proxyissue['key'] + " with " + str(fields)
+                    isbug = jira.issue(proxyissue['key'])
+                    isbug.update(fields)
+                        
         else:
+            if(options.verbose):
+                print "[INFO] Want to create jira for " + str(bug)
+                print "[DEBUG] " + str(issue_dict)
             newissue = jira.create_issue(fields=issue_dict)
             link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
             print "[INFO] Created " + options.jiraserver + "/browse/" + newissue.key
             jira.add_simple_link(newissue, object=link)
             bugs.append(newissue)
-
+    #else:
+    #    print "[ERROR] No issue dictionary created. Something went wrong. See errors above."
 
 # Prompt user to accept new JIRAs or delete them
 if(options.dryrun is None): 
