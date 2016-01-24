@@ -59,7 +59,7 @@ def create_proxy_jira_dict(options, bug):
     ## check version exists, if not don't create proxy jira.
     if(not next((v for v in versions if jiraversion == v.name), None)):
         if(jiraversion and jiraversion != NO_VERSION): 
-            print "[ERROR] Version " + jiraversion + " not found in ERT. Please create it or fix the mapping. Bug: " + str(bug)
+            print "[ERROR] Version " + jiraversion + " mapped from " + bug.target_milestone + " not found in ERT. Please create it or fix the mapping. Bug: " + str(bug)
             return
 
     ## TODO: make this logic more clear.
@@ -87,7 +87,8 @@ def create_proxy_jira_dict(options, bug):
         'priority' : { 'name' : bz_to_jira_priority(options, bug) },
         'labels' :   labels,
         'fixVersions' : fixversion,
-        'components' : [{ "name" : bug.product }]
+        'components' : [{ "name" : bug.product }],
+        
     }
 
     return issue_dict
@@ -97,10 +98,11 @@ def map_linuxtools(version):
     #TODO: curently based on map from xcoulon
     versions = {
         "4.2.1" : "Mars.2",
-        "4.2" : "Mars.2",
-        "4.1" : "Mars.1",
-        "4.0" : "Mars",
-        "---" : NO_VERSION
+        "4.2"   : "Mars.2",
+        "4.1"   : "Mars.1",
+        "4.1.0" : "Mars.1", 
+        "4.0"   : "Mars",
+        "---"   : NO_VERSION
         }
     return versions.get(version, None)
 
@@ -128,6 +130,14 @@ def bz_to_jira_version(options, bug):
     """Return corresponding jira version for bug version. None means mapping not known. NO_VERSION means it has no fixversion."""
     bzversion = bug.target_milestone
     b2j = None
+
+    ## '---' corresponds to no version set.
+    if (bzversion == "---"):
+        return NO_VERSION
+
+    ## Use jira version Future for versions that is tied to no specific version
+    if (bzversion == 'Future'):
+        return 'Future'
     
     if bug.product in bzprod_version_map:
         b2j = bzprod_version_map[bug.product]
@@ -157,6 +167,58 @@ bz2jira_priority = {
 def bz_to_jira_priority(options, bug):
     return bz2jira_priority[bug.severity] # jira is dumb. jira priority is severity.
 
+
+bz2jira_status = {
+           "NEW" : "Open",
+           "REOPENED": "Reopened",
+           "RESOLVED" : "Resolved",
+           "VERIFIED" : "Verified",
+           "CLOSED" : "Closed",
+           "ASSIGNED" : "Coding In Progress", # is this the right approximation ?
+    }
+    
+def bz_to_jira_status(options, bug):
+
+    jstatusid = None
+
+    if bug.status in bz2jira_status:
+        jstatus = bz2jira_status[bug.status]
+        jstatusid = next((s for s in statuses if jstatus == s.name), None)
+
+    if(jstatusid):
+        return jstatusid
+
+    raise ValueError('Could not find matching status for ' + bug.status)
+    
+bz2jira_resolution = {
+           "FIXED": "Done",
+           "INVALID" : "Invalid",
+           "WONTFIX" : "Won't Fix",
+           "DUPLICATE" : "Duplicate Issue",
+           "WORKSFORME" : "Cannot Reproduce",
+           "MOVED" : "Migrated to another ITS",
+           "NOT_ECLIPSE" : "Invalid" # don't have an exact mapping so using invalid as "best approximation"
+    }
+    
+def bz_to_jira_resolution(options, bug):
+
+    jstatusid = None
+
+    if (bug.resolution == ""):
+        return None
+    
+    if bug.resolution in bz2jira_resolution:
+        jresolution = bz2jira_resolution[bug.resolution]
+        jresolutionid = next((s for s in resolutions if jresolution == s.name), None)
+    elif bug.resolution == "":
+        jresolution = "None"
+        jresolutionid = next((s for s in resolutions if jresolution == s.name), None)
+               
+    if(jresolutionid):
+        return jresolutionid
+
+    raise ValueError('Could not find matching resolution for ' + bug.resolution)
+    
 def parse_options():
     usage = "Usage: %prog -u <user> -p <password> \nCreates proxy issues for bugzilla issues in jira"
 
@@ -176,6 +238,90 @@ def parse_options():
         parser.error("Missing username or password")
 
     return options
+
+def proces(bug):
+    changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
+    difference = now - changeddate
+
+    if(options.verbose):
+        print '[DEBUG] %s - %s [%s, %s, [%s]] {%s} -> %s (%s)' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl, difference)
+    else:
+        sys.stdout.write('.')
+        
+    issue_dict = create_proxy_jira_dict(options, bug)
+
+    if(issue_dict):
+        proxyissue = lookup_proxy(options, bug)
+        
+        if(proxyissue):
+            if(options.verbose):
+                print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
+
+            fields = {}
+            if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
+                #TODO: this check for existence in list of components
+                # but then overwrites anything else. Problematic or not ?
+                updcomponents = [{"name" : bug.product}]
+                fields["components"] = updcomponents
+
+                # TODO this doesn't seem to actually change a fixversion field
+                if len(fields)>0:
+                    print "Updating " + proxyissue['key'] + " with " + str(fields)
+                    isbug = jira.issue(proxyissue['key'])
+                    isbug.update(fields)
+                        
+        else:
+            if(options.verbose):
+                print "[INFO] Want to create jira for " + str(bug)
+                print "[DEBUG] " + str(issue_dict)
+            newissue = jira.create_issue(fields=issue_dict)
+            bugs.append(newissue)
+
+            ## Setup links
+            link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
+            print "[INFO] Created " + options.jiraserver + "/browse/" + newissue.key
+            jira.add_simple_link(newissue, object=link)
+
+            # Check for transition needed
+            jstatus = bz_to_jira_status(options, bug)
+            jresolution = bz_to_jira_resolution(options, bug)
+
+            print ""
+            print "Need to transitiation from " + str(newissue.fields.status) + "/" + str(newissue.fields.resolution) +" to " + str(jstatus.name) + "/" + (str(jresolution.name) if jresolution else '(nothing)')
+
+            transid = (
+                 newissue.fields.status.name if newissue.fields.status else None,
+                 newissue.fields.resolution.name if newissue.fields.resolution else None,
+                 jstatus.name if jstatus else None,
+                 jresolution.name if jresolution else None)
+                 
+
+            if(transid in transitionmap):
+                trans = transitionmap[transid]
+                if(trans):
+                    print "Want to do " + str(transid) + " with " + str(trans)
+                    print "Can do: " + str(jira.transitions(newissue))
+
+                    wantedres={ "name": trans["resolution"] } if "resolution" in trans else None
+                    print "Wanted res: " + str(wantedres)
+                    
+                    if(wantedres):
+                        jira.transition_issue(newissue, trans["id"],resolution=wantedres)
+                    else:
+                        jira.transition_issue(newissue, trans["id"])
+                else:
+                    print "No transition needed"
+            else:
+                raise ValueError("Do not know how to do transition for " + str(transid))
+                
+            
+            
+           # print jira.transitions(newissue)
+            
+          
+            
+    #else:
+    #    print "[ERROR] No issue dictionary created. Something went wrong. See errors above."
 
 
 options = parse_options()
@@ -224,56 +370,27 @@ jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username,
 
 versions = jira.project_versions('ERT')
 components = jira.project_components('ERT')
+
+resolutions = jira.resolutions()
+statuses = jira.statuses()
+
+transitionmap = {
+
+   ("Open", None, "Open", None) : None, # its already correct
+   ("Open", None, "Resolved", "Done") : {"id" : "5", "resolution" : "Done" }, 
+   ("Open", None, "Closed", "Cannot Reproduce") : {"id" : "3"},
+   ("Open", None, "Resolved", "Duplicate Issue") : {"id" : "2", "resolution" : "Duplicate Issue"},
+   ("Open", None, "Reopened", None) : None, # can't go to reopen without closing so just leaving it in open
+   ("Open", None, "Coding In Progress", None) : {"id" : "4"}
+
+   }
+   
 if (options.verbose):
     print "[DEBUG] " + "Found " + str(len(components)) + " components and " + str(len(versions)) + " versions in JIRA"
-    print "" 
-
+ 
 for bug in issues:
-    # bug.delta_ts = bugzilla last changed date, eg., 20160106T09:50:33
-
+    proces(bug)
     
-    changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
-    difference = now - changeddate
-
-    if(options.verbose):
-        print '[DEBUG] %s - %s [%s, %s, [%s]] {%s} -> %s (%s)' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl, difference)
-    else:
-        sys.stdout.write('.')
-        
-    issue_dict = create_proxy_jira_dict(options, bug)
-
-    if(issue_dict):
-        proxyissue = lookup_proxy(options, bug)
-        
-        if(proxyissue):
-            if(options.verbose):
-                print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
-
-            fields = {}
-            if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
-                #TODO: this check for existence in list of components
-                # but then overwrites anything else. Problematic or not ?
-                updcomponents = [{"name" : bug.product}]
-                fields["components"] = updcomponents
-
-                # TODO this doesn't seem to actually change a fixversion field
-                if len(fields)>0:
-                    print "Updating " + proxyissue['key'] + " with " + str(fields)
-                    isbug = jira.issue(proxyissue['key'])
-                    isbug.update(fields)
-                        
-        else:
-            if(options.verbose):
-                print "[INFO] Want to create jira for " + str(bug)
-                print "[DEBUG] " + str(issue_dict)
-            newissue = jira.create_issue(fields=issue_dict)
-            link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
-            print "[INFO] Created " + options.jiraserver + "/browse/" + newissue.key
-            jira.add_simple_link(newissue, object=link)
-            bugs.append(newissue)
-    #else:
-    #    print "[ERROR] No issue dictionary created. Something went wrong. See errors above."
-
 # Prompt user to accept new JIRAs or delete them
 if(options.dryrun is None): 
     accept = raw_input("Accept created JIRAs? [Y/n] ")
