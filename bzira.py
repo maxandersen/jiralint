@@ -16,6 +16,9 @@ httpdebug = False
 
 NO_VERSION = "!_NO_VERSION_!"
 
+## Jira Project used for the Eclipse release train 
+ECLIPSE_PROJECT = "ERT"
+
 components = []
 versions = []
 
@@ -33,10 +36,20 @@ if httpdebug:
 
 pp = pprint.PrettyPrinter() 
 
+transitionmap = {
+   ("Open", None, "Open", None) : None, # its already correct
+   ("Open", None, "Resolved", "Done") : {"id" : "5", "resolution" : "Done" }, 
+   ("Open", None, "Closed", "Cannot Reproduce Bug") : {"id" : "3", "resolution" : "Cannot Reproduce Bug" },
+   ("Open", None, "Resolved", "Duplicate Issue") : {"id" : "2", "resolution" : "Duplicate Issue"},
+   ("Open", None, "Reopened", None) : None, # can't go to reopen without closing so just leaving it in open
+   ("Open", None, "Coding In Progress", None) : {"id" : "4"}
+
+   }
+    
 def lookup_proxy(options, bug):
 
     #TODO: should keep a local cache from BZ->JIRA to avoid constant querying
-    payload = {'jql': 'project = ERT and summary ~ \'EBZ#' + str(bug.id) +'\'', 'maxResults' : 5}
+    payload = {'jql': 'project = ' + ECLIPSE_PROJECT + ' and summary ~ \'EBZ#' + str(bug.id) +'\'', 'maxResults' : 5}
     data = shared.jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
     count = len(data['issues'])
     if(count == 0):
@@ -59,7 +72,7 @@ def create_proxy_jira_dict(options, bug):
     ## check version exists, if not don't create proxy jira.
     if(not next((v for v in versions if jiraversion == v.name), None)):
         if(jiraversion and jiraversion != NO_VERSION): 
-            print "[ERROR] Version " + jiraversion + " mapped from " + bug.target_milestone + " not found in ERT. Please create it or fix the mapping. Bug: " + str(bug)
+            print "[ERROR] Version " + jiraversion + " mapped from " + bug.target_milestone + " not found in " + ECLIPSE_PROJECT + ". Please create it or fix the mapping. Bug: " + str(bug)
             return
 
     ## TODO: make this logic more clear.
@@ -70,8 +83,8 @@ def create_proxy_jira_dict(options, bug):
     ## ensure the product name exists as a component
     global components
     if(not next((c for c in components if bug.product == c.name), None)): 
-        comp = jira.create_component(bug.product, "ERT")
-        components = jira.project_components('ERT')
+        comp = jira.create_component(bug.product, ECLIPSE_PROJECT)
+        components = jira.project_components(ECLIPSE_PROJECT)
 
 
     labels=['bzira']
@@ -80,7 +93,7 @@ def create_proxy_jira_dict(options, bug):
         labels.append(bug.target_milestone.replace(" ", "_")) #labels not allowed to have spaces in it.
 
     issue_dict = {
-        'project' : { 'key': 'ERT' },
+        'project' : { 'key': ECLIPSE_PROJECT },
         'summary' : bug.summary + ' [EBZ#' + str(bug.id) + "]",
         'description' : bug.getcomments()[0]['text'], # todo - this loads all comments...everytime. probably should wait to do this once it is absolutely needed.
         'issuetype' : { 'name' : 'Task' }, # No notion of types in bugzilla just taking the most generic/non-specifc in jira
@@ -195,7 +208,7 @@ bz2jira_resolution = {
            "INVALID" : "Invalid",
            "WONTFIX" : "Won't Fix",
            "DUPLICATE" : "Duplicate Issue",
-           "WORKSFORME" : "Cannot Reproduce",
+           "WORKSFORME" : "Cannot Reproduce Bug",
            "MOVED" : "Migrated to another ITS",
            "NOT_ECLIPSE" : "Invalid" # don't have an exact mapping so using invalid as "best approximation"
     }
@@ -229,7 +242,7 @@ def parse_options():
     parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually creating issues")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="be verbose")
     # TODO should we support min age in hours instead of days? How often do we want to run this script?
-    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if bugzilla has not changed in more than X days, do not process it")
+    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, a limit will put on queries to have it only return results that have changed in the given amount of hours.")
     parser.add_option("-S", "--start-date", dest="start_date", default="", help="use this start date (yyyy-mm-dd) as the threshhold from which to query for bugzillas")
 
     (options, args) = parser.parse_args()
@@ -239,7 +252,9 @@ def parse_options():
 
     return options
 
-def proces(bug):
+def proces(bug, bugs):
+    newissue = None
+
     changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
     difference = now - changeddate
 
@@ -255,7 +270,7 @@ def proces(bug):
         
         if(proxyissue):
             if(options.verbose):
-                print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key']
+                print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key'] + " checking if something needs updating/syncing."
 
             fields = {}
             if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
@@ -264,19 +279,21 @@ def proces(bug):
                 updcomponents = [{"name" : bug.product}]
                 fields["components"] = updcomponents
 
-                # TODO this doesn't seem to actually change a fixversion field
+                #TODO: see if fixversions matches, see if status/resolutoin matches?
+                
                 if len(fields)>0:
                     print "Updating " + proxyissue['key'] + " with " + str(fields)
                     isbug = jira.issue(proxyissue['key'])
                     isbug.update(fields)
-                        
+                else:
+                    print "No detected changes."
         else:
             if(options.verbose):
                 print "[INFO] Want to create jira for " + str(bug)
                 print "[DEBUG] " + str(issue_dict)
             newissue = jira.create_issue(fields=issue_dict)
             bugs.append(newissue)
-
+            
             ## Setup links
             link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
             print "[INFO] Created " + options.jiraserver + "/browse/" + newissue.key
@@ -313,15 +330,8 @@ def proces(bug):
                     print "No transition needed"
             else:
                 raise ValueError("Do not know how to do transition for " + str(transid))
-                
-            
-            
-           # print jira.transitions(newissue)
-            
-          
-            
-    #else:
-    #    print "[ERROR] No issue dictionary created. Something went wrong. See errors above."
+
+    return newissue
 
 
 options = parse_options()
@@ -340,7 +350,7 @@ if (options.verbose):
 if (options.start_date):
     last_change_time = datetime.strptime(str(options.start_date),'%Y-%m-%d')
 elif (options.minimum_age_to_process):
-    last_change_time = now - timedelta(days=int(options.minimum_age_to_process))
+    last_change_time = now - timedelta(hours=int(options.minimum_age_to_process))
 else:
     last_change_time = None
     
@@ -363,39 +373,34 @@ issues = bz.query(bz.url_to_query(query))
 
 print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
 
-bugs = []
-
-print "[INFO] " + "Logging in to " + options.jiraserver
-jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
-
-versions = jira.project_versions('ERT')
-components = jira.project_components('ERT')
-
-resolutions = jira.resolutions()
-statuses = jira.statuses()
-
-transitionmap = {
-
-   ("Open", None, "Open", None) : None, # its already correct
-   ("Open", None, "Resolved", "Done") : {"id" : "5", "resolution" : "Done" }, 
-   ("Open", None, "Closed", "Cannot Reproduce") : {"id" : "3"},
-   ("Open", None, "Resolved", "Duplicate Issue") : {"id" : "2", "resolution" : "Duplicate Issue"},
-   ("Open", None, "Reopened", None) : None, # can't go to reopen without closing so just leaving it in open
-   ("Open", None, "Coding In Progress", None) : {"id" : "4"}
-
-   }
-   
-if (options.verbose):
-    print "[DEBUG] " + "Found " + str(len(components)) + " components and " + str(len(versions)) + " versions in JIRA"
- 
-for bug in issues:
-    proces(bug)
     
-# Prompt user to accept new JIRAs or delete them
-if(options.dryrun is None): 
-    accept = raw_input("Accept created JIRAs? [Y/n] ")
-    if accept.capitalize() in ["N"]:
-        for b in bugs:
-            print "[INFO] " + "Delete " + options.jiraserver + "/browse/" + str(b)
-            b.delete()
 
+if(len(issues) > 0):
+
+    print "[INFO] " + "Logging in to " + options.jiraserver
+    jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
+
+    #TODO: should get these data into something more structured than individual global variables.
+    versions = jira.project_versions(ECLIPSE_PROJECT)
+    components = jira.project_components(ECLIPSE_PROJECT)
+
+    resolutions = jira.resolutions()
+    statuses = jira.statuses()
+
+    if (options.verbose):
+        print "[DEBUG] " + "Found " + str(len(components)) + " components and " + str(len(versions)) + " versions in JIRA"
+
+    createdbugs = []
+
+    for bug in issues:
+        proces(bug, createdbugs)
+    
+    # Prompt user to accept new JIRAs or delete them
+    if(len(createdbugs)>0): 
+        accept = raw_input("Accept " + str(len(createdbugs)) + " created JIRAs? [Y/n] ")
+        if accept.capitalize() in ["N"]:
+            for b in createdbugs:
+                print "[INFO] " + "Delete " + options.jiraserver + "/browse/" + str(b)
+                b.delete()
+else:
+    print "[INFO] No bugzillas found matching the query. Nothing to do."
