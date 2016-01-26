@@ -52,8 +52,7 @@ transitionmap = {
    }
     
 def lookup_proxy(options, bug):
-
-    #TODO: should keep a local cache from BZ->JIRA to avoid constant querying
+    #TODO should keep a local cache from BZ->JIRA to avoid constant querying
     payload = {'jql': 'project = ' + ECLIPSE_PROJECT + ' and summary ~ \'EBZ#' + str(bug.id) +'\'', 'maxResults' : 5}
     data = shared.jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
     count = len(data['issues'])
@@ -65,7 +64,6 @@ def lookup_proxy(options, bug):
         print "[WARN] Multiple issues found for " + str(bug.id)
         print data['issues']
         return 
-
 
 ## Create the jira dict object for how the bugzilla *should* look like
 def create_proxy_jira_dict(options, bug):
@@ -91,8 +89,8 @@ def create_proxy_jira_dict(options, bug):
             print "[ERROR] No mapping for '" + bug.target_milestone + "'. Please fix the mapping. Bug: " + str(bug)
             return
             
-    ## TODO: make this logic more clear.
-    ## for now we have the same test twice to aviod None to fall through.
+    ## TODO make this logic more clear.
+    ## for now we have the same test twice to avoid None to fall through.
     if (jiraversion and jiraversion != NO_VERSION): 
         fixversion=[{ "name" : jiraversion }]
 
@@ -106,25 +104,24 @@ def create_proxy_jira_dict(options, bug):
     labels=['bzira']
     labels.append(bug.component)
     if(bug.target_milestone and bug.target_milestone!="---"):
-        labels.append(bug.target_milestone.replace(" ", "_")) #labels not allowed to have spaces in it.
+        labels.append(bug.target_milestone.replace(" ", "_")) # label not allowed to have spaces.
 
     issue_dict = {
         'project' : { 'key': ECLIPSE_PROJECT },
         'summary' : bug.summary + ' [EBZ#' + str(bug.id) + "]",
-        'description' : bug.getcomments()[0]['text'], # todo - this loads all comments...everytime. probably should wait to do this once it is absolutely needed.
+        'description' : bug.getcomments()[0]['text'], # TODO this loads all comments...everytime. probably should wait to do this once it is absolutely needed.
         'issuetype' : { 'name' : 'Task' }, # No notion of types in bugzilla just taking the most generic/non-specifc in jira
         'priority' : { 'name' : bz_to_jira_priority(options, bug) },
         'labels' :   labels,
         'fixVersions' : fixversion,
         'components' : [{ "name" : bug.product }],
-        
     }
 
     return issue_dict
 
 def map_linuxtools(version):
-    #TODO: make this use real neon versions.
-    #TODO: curently based on map from xcoulon
+    #TODO make this use real neon versions.
+    #TODO curently based on map from xcoulon
     versions = {
         "4.2.1" : "Mars.2 (4.5)",
         "4.2"   : "Mars.2 (4.5)",
@@ -152,8 +149,6 @@ bzprod_version_map = {
     #"m2e" : (lambda version: NO_VERSION)
     
     }
-
-
     
 def bz_to_jira_version(options, bug):
     """Return corresponding jira version for bug version. None means mapping not known. NO_VERSION means it has no fixversion."""
@@ -180,8 +175,6 @@ def bz_to_jira_version(options, bug):
     else:
         print "[ERROR] No version mapper found for " + bug.product
 
-    
-
 bz2jira_priority = {
      'blocker' : 'Blocker',
      'critical' : 'Critical',
@@ -189,13 +182,11 @@ bz2jira_priority = {
      'normal' : 'Major',
      'minor' : 'Minor',
      'trivial' : 'Trivial',
-     'enhancement' : 'Trivial' #TODO: is bz enhancement really indictor for type is feature or is it purely a priority/complexity flag ?
+     'enhancement' : 'Trivial' #TODO determine if 'enhancement' is really an indicator of a feature request, or simply a priority/complexity flag
     }
-
     
 def bz_to_jira_priority(options, bug):
-    return bz2jira_priority[bug.severity] # jira is dumb. jira priority is severity.
-
+    return bz2jira_priority[bug.severity] # Jira is dumb. jira priority is severity.
 
 bz2jira_status = {
            "NEW" : "Open",
@@ -203,7 +194,7 @@ bz2jira_status = {
            "RESOLVED" : "Resolved",
            "VERIFIED" : "Verified",
            "CLOSED" : "Closed",
-           "ASSIGNED" : "Coding In Progress", # is this the right approximation ?
+           "ASSIGNED" : "Coding In Progress", # TODO determine if this is the right approximation
     }
     
 def bz_to_jira_status(options, bug):
@@ -255,11 +246,10 @@ def parse_options():
     parser.add_option("-u", "--user", dest="username", help="jira username")
     parser.add_option("-p", "--pwd", dest="password", help="jira password")
     parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
-    parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="do everything but actually creating issues")
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="be verbose")
-    # TODO should we support min age in hours instead of days? How often do we want to run this script?
-    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, a limit will put on queries to have it only return results that have changed in the given amount of hours.")
-    parser.add_option("-S", "--start-date", dest="start_date", default="", help="use this start date (yyyy-mm-dd) as the threshhold from which to query for bugzillas")
+    parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="run without creating proxy issues.")
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="more verbose console output")
+    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, query only bugzillas changed in the last x hours.")
+    parser.add_option("-S", "--start-date", dest="start_date", default="", help="if set, show only bugzillas changed since start date (yyyy-mm-dd)")
 
     (options, args) = parser.parse_args()
 
@@ -268,7 +258,7 @@ def parse_options():
 
     return options
 
-def proces(bug, bugs):
+def process(bug, bugs):
     newissue = None
 
     changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
@@ -290,12 +280,12 @@ def proces(bug, bugs):
 
             fields = {}
             if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
-                #TODO: this check for existence in list of components
+                #TODO this check for existence in list of components
                 # but then overwrites anything else. Problematic or not ?
                 updcomponents = [{"name" : bug.product}]
                 fields["components"] = updcomponents
 
-                #TODO: see if fixversions matches, see if status/resolutoin matches?
+                #TODO see if fixversions matches, see if status/resolution matches?
                 
                 if len(fields)>0:
                     print "Updating " + proxyissue['key'] + " with " + str(fields)
@@ -307,6 +297,10 @@ def proces(bug, bugs):
             if(options.verbose):
                 print "[INFO] Want to create jira for " + str(bug)
                 print "[DEBUG] " + str(issue_dict)
+
+            if(options.dryrun):
+                return
+            
             newissue = jira.create_issue(fields=issue_dict)
             bugs.append(newissue)
             
@@ -327,7 +321,6 @@ def proces(bug, bugs):
                  newissue.fields.resolution.name if newissue.fields.resolution else None,
                  jstatus.name if jstatus else None,
                  jresolution.name if jresolution else None)
-
 
             if(transid in transitionmap):
                 trans = transitionmap[transid]
@@ -353,7 +346,6 @@ def proces(bug, bugs):
 
     return newissue
 
-
 options = parse_options()
 
 # TODO cache results locally so we don't have to keep hitting live server to do iterations
@@ -374,12 +366,9 @@ elif (options.minimum_age_to_process):
 else:
     last_change_time = None
     
-# to query only 1 week, 1 day, 3hrs of recent changes:
-# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1w&status_whiteboard=RHT&order=changeddate%20DESC%2C
-# https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=1d&status_whiteboard=RHT&order=changeddate%20DESC%2C
+# to query only 3hrs of recent changes:
 # https://bugs.eclipse.org/bugs/buglist.cgi?chfieldfrom=3h&status_whiteboard=RHT&order=changeddate%20DESC%2C
 # but since chfieldfrom not supported in xmlrpc, use last_change_time instead with specific date, not relative one
-
 if (last_change_time):
     query = basequery + "&last_change_time=" + last_change_time.strftime('%Y-%m-%d+%H:%M')
 else:
@@ -387,34 +376,36 @@ else:
     
 bz = bugzilla.Bugzilla(url=bzserver + "bugs/xmlrpc.cgi")
 
-print "[DEBUG] " + "Querying bugzilla: " + query
+queryobj = bz.url_to_query(query)
+
+print "[DEBUG] Actual query sent: " + str(queryobj)
+# print approximate url since xmlrpc.cgi accept last_change_time, but browser queries need in last_change_time
+print "[DEBUG] Approxmimate bugzilla weburl: " + query.replace("last_change_time","chfieldfrom")
     
-issues = bz.query(bz.url_to_query(query))
+issues = bz.query(queryobj)
 
 print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
-
-    
 
 if(len(issues) > 0):
 
     print "[INFO] " + "Logging in to " + options.jiraserver
     jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
 
-    #TODO: should get these data into something more structured than individual global variables.
+    #TODO should get these data into something more structured than individual global variables.
     versions = jira.project_versions(ECLIPSE_PROJECT)
     components = jira.project_components(ECLIPSE_PROJECT)
 
-    resolutions = jira.resolutions()
-    statuses = jira.statuses()
-
     if (options.verbose):
         print "[DEBUG] " + "Found " + str(len(components)) + " components and " + str(len(versions)) + " versions in JIRA"
+
+    resolutions = jira.resolutions()
+    statuses = jira.statuses()
 
     createdbugs = []
 
     for bug in issues:
         try:
-            proces(bug, createdbugs)
+            process(bug, createdbugs)
         except ValueError as ve:
             print "[ERROR] Issue when processing " + str(bug) + ". Cannot determine if the bug was created or not. See details above."
             print ve
