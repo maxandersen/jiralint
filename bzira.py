@@ -1,5 +1,5 @@
 import bugzilla
-from jira.client import JIRA
+from jira.client import JIRA, JIRAError
 from optparse import OptionParser
 import urllib
 import pprint
@@ -321,11 +321,14 @@ def proces(bug, bugs):
 
                     wantedres={ "name": trans["resolution"] } if "resolution" in trans else None
                     print "Wanted res: " + str(wantedres)
-                    
-                    if(wantedres):
-                        jira.transition_issue(newissue, trans["id"],resolution=wantedres)
-                    else:
-                        jira.transition_issue(newissue, trans["id"])
+
+                    try:
+                        if(wantedres):
+                            jira.transition_issue(newissue, trans["id"],resolution=wantedres)
+                        else:
+                            jira.transition_issue(newissue, trans["id"])
+                    except JIRAError as je:
+                        print je
                 else:
                     print "No transition needed"
             else:
@@ -393,8 +396,13 @@ if(len(issues) > 0):
     createdbugs = []
 
     for bug in issues:
-        proces(bug, createdbugs)
-    
+        try:
+            proces(bug, createdbugs)
+        except ValueError as ve:
+            print "[ERROR] Issue when processing " + str(bug) + ". Cannot determine if the bug was created or not. See details above."
+            print ve
+
+            
     # Prompt user to accept new JIRAs or delete them
     if(len(createdbugs)>0): 
         accept = raw_input("Accept " + str(len(createdbugs)) + " created JIRAs? [Y/n] ")
