@@ -11,6 +11,7 @@ from datetime import timedelta
 import time
 import pytz
 import sys
+from collections import defaultdict
 
 httpdebug = False
 
@@ -21,6 +22,10 @@ ECLIPSE_PROJECT = "ERT"
 
 components = []
 versions = []
+
+## failure data
+missing_versions = defaultdict(set)
+jira_failure = defaultdict(set)
 
 ### Enables http debugging
 if httpdebug:
@@ -72,9 +77,20 @@ def create_proxy_jira_dict(options, bug):
     ## check version exists, if not don't create proxy jira.
     if(not next((v for v in versions if jiraversion == v.name), None)):
         if(jiraversion and jiraversion != NO_VERSION): 
-            print "[ERROR] Version " + jiraversion + " mapped from " + bug.target_milestone + " not found in " + ECLIPSE_PROJECT + ". Please create it or fix the mapping. Bug: " + str(bug)
+            print "[ERROR] Version '" + jiraversion + "' mapped from '" + bug.target_milestone + "' not found in " + ECLIPSE_PROJECT + ". Please create it or fix the mapping. Bug: " + str(bug)
+            accept = raw_input("Create " + jiraversion + " ?")
+            if accept.capitalize() in "Y":
+                newv = jira.create_version(jiraversion, ECLIPSE_PROJECT)
+                global versions
+                versions = jira.project_versions(ECLIPSE_PROJECT)
+                jiraversion = newv.name
+            else:
+                missing_versions[jiraversion].add(bug)
+                return
+        elif(not jiraversion):
+            print "[ERROR] No mapping for '" + bug.target_milestone + "'. Please fix the mapping. Bug: " + str(bug)
             return
-
+            
     ## TODO: make this logic more clear.
     ## for now we have the same test twice to aviod None to fall through.
     if (jiraversion and jiraversion != NO_VERSION): 
@@ -110,30 +126,30 @@ def map_linuxtools(version):
     #TODO: make this use real neon versions.
     #TODO: curently based on map from xcoulon
     versions = {
-        "4.2.1" : "Mars.2",
-        "4.2"   : "Mars.2",
-        "4.1"   : "Mars.1",
-        "4.1.0" : "Mars.1", 
-        "4.0"   : "Mars",
+        "4.2.1" : "Mars.2 (4.5)",
+        "4.2"   : "Mars.2 (4.5)",
+        "4.1"   : "Mars.1 (4.5)",
+        "4.1.0" : "Mars.1 (4.5)", 
+        "4.0"   : "Mars (4.5)",
         "---"   : NO_VERSION
         }
     return versions.get(version, None)
 
 bzprod_version_map = {
-    "WTP Incubator" : (lambda version: NO_VERSION),
+    #"WTP Incubator" : (lambda version: NO_VERSION),
 
     # TODO ensure this works for 3.8.x -> Neon.x 
-    "JSDT" : (lambda version: re.sub(r"3.8(.*)", r"Neon\1", version)),
-    "WTP Source Editing" : (lambda version: re.sub(r"3.8(.*)", r"Neon\1", version)),
+    "JSDT" : (lambda version: re.sub(r"3.8(.*)", r"Neon (4.6)\1", version)),
+    "WTP Source Editing" : (lambda version: re.sub(r"3.8(.*)", r"Neon (4.6)\1", version)),
 
     # TODO ensure this works for 4.6.x -> Neon.x 
-    "Platform" : (lambda version: re.sub(r"4.6(.*)", r"Neon\1", version)),
+    "Platform" : (lambda version: re.sub(r"4.6(.*)", r"Neon (4.6)\1", version)),
 
     # 4.2.1 -> Mars.2
     # 5.0.0 -> Neon.?
     "Linux Tools" : map_linuxtools,
 
-    "m2e" : (lambda version: NO_VERSION)
+    #"m2e" : (lambda version: NO_VERSION)
     
     }
 
@@ -303,24 +319,24 @@ def proces(bug, bugs):
             jstatus = bz_to_jira_status(options, bug)
             jresolution = bz_to_jira_resolution(options, bug)
 
-            print ""
-            print "Need to transitiation from " + str(newissue.fields.status) + "/" + str(newissue.fields.resolution) +" to " + str(jstatus.name) + "/" + (str(jresolution.name) if jresolution else '(nothing)')
+            #print ""
+            #print "Need to transitiation from " + str(newissue.fields.status) + "/" + str(newissue.fields.resolution) +" to " + str(jstatus.name) + "/" + (str(jresolution.name) if jresolution else '(nothing)')
 
             transid = (
                  newissue.fields.status.name if newissue.fields.status else None,
                  newissue.fields.resolution.name if newissue.fields.resolution else None,
                  jstatus.name if jstatus else None,
                  jresolution.name if jresolution else None)
-                 
+
 
             if(transid in transitionmap):
                 trans = transitionmap[transid]
                 if(trans):
-                    print "Want to do " + str(transid) + " with " + str(trans)
-                    print "Can do: " + str(jira.transitions(newissue))
+                    #print "Want to do " + str(transid) + " with " + str(trans)
+                    #print "Can do: " + str(jira.transitions(newissue))
 
                     wantedres={ "name": trans["resolution"] } if "resolution" in trans else None
-                    print "Wanted res: " + str(wantedres)
+                    #print "Wanted res: " + str(wantedres)
 
                     try:
                         if(wantedres):
@@ -329,10 +345,11 @@ def proces(bug, bugs):
                             jira.transition_issue(newissue, trans["id"])
                     except JIRAError as je:
                         print je
-                else:
-                    print "No transition needed"
+                        jira_failure[newissue.key].add("Could not perform transition" + str(trans) + " error: " + str(je))
+                #else:
+                    #print "No transition needed"
             else:
-                raise ValueError("Do not know how to do transition for " + str(transid))
+                raise ValueError("Do not know how to do transition for " + str(transid) + " with " + str(trans))
 
     return newissue
 
@@ -402,6 +419,20 @@ if(len(issues) > 0):
             print "[ERROR] Issue when processing " + str(bug) + ". Cannot determine if the bug was created or not. See details above."
             print ve
 
+
+    ## report issues
+    for v,k in missing_versions.iteritems():
+        print "Missing version '" + v + "'"
+        for b in k:
+            print "  " + b.product + ": " + b.weburl
+        accept = raw_input("Create " + v + " ?")
+        if accept.capitalize() in "Y":
+            jira.create_version(v, ECLIPSE_PROJECT)
+
+    for v,k in jira_failure.iteritems():
+        print "Jira " + v + " gave following errors:"
+        for b in k:
+            print "  " + b
             
     # Prompt user to accept new JIRAs or delete them
     if(len(createdbugs)>0): 
