@@ -56,9 +56,9 @@ def lookup_proxy(options, bug):
     payload = {'jql': 'project = ' + ECLIPSE_PROJECT + ' and summary ~ \'EBZ#' + str(bug.id) +'\'', 'maxResults' : 5}
     data = shared.jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
     count = len(data['issues'])
-    if(count == 0):
+    if (count == 0):
         return 
-    elif(count == 1):
+    elif (count == 1):
         return data['issues'][0]
     else:
         print "[WARN] Multiple issues found for " + str(bug.id)
@@ -73,8 +73,8 @@ def create_proxy_jira_dict(options, bug):
     fixversion=[]
 
     ## check version exists, if not don't create proxy jira.
-    if(not next((v for v in versions if jiraversion == v.name), None)):
-        if(jiraversion and jiraversion != NO_VERSION): 
+    if (not next((v for v in versions if jiraversion == v.name), None)):
+        if (jiraversion and jiraversion != NO_VERSION): 
             print "[ERROR] Version '" + jiraversion + "' mapped from '" + bug.target_milestone + "' not found in " + ECLIPSE_PROJECT + ". Please create it or fix the mapping. Bug: " + str(bug)
             accept = raw_input("Create " + jiraversion + " ?")
             if accept.capitalize() in "Y":
@@ -85,7 +85,7 @@ def create_proxy_jira_dict(options, bug):
             else:
                 missing_versions[jiraversion].add(bug)
                 return
-        elif(not jiraversion):
+        elif (not jiraversion):
             print "[ERROR] No mapping for '" + bug.target_milestone + "'. Please fix the mapping. Bug: " + str(bug)
             return
             
@@ -96,14 +96,14 @@ def create_proxy_jira_dict(options, bug):
 
     ## ensure the product name exists as a component
     global components
-    if(not next((c for c in components if bug.product == c.name), None)): 
+    if (not next((c for c in components if bug.product == c.name), None)): 
         comp = jira.create_component(bug.product, ECLIPSE_PROJECT)
         components = jira.project_components(ECLIPSE_PROJECT)
 
 
     labels=['bzira']
     labels.append(bug.component)
-    if(bug.target_milestone and bug.target_milestone!="---"):
+    if (bug.target_milestone and bug.target_milestone!="---"):
         labels.append(bug.target_milestone.replace(" ", "_")) # label not allowed to have spaces.
 
     issue_dict = {
@@ -146,7 +146,7 @@ bzprod_version_map = {
     # 5.0.0 -> Neon.?
     "Linux Tools" : map_linuxtools,
 
-    #"m2e" : (lambda version: NO_VERSION)
+    "m2e" : (lambda version: re.sub(r"1.7(.*)/Neon (.*)", r"Neon (4.6) \2", version)),
     
     }
     
@@ -205,7 +205,7 @@ def bz_to_jira_status(options, bug):
         jstatus = bz2jira_status[bug.status]
         jstatusid = next((s for s in statuses if jstatus == s.name), None)
 
-    if(jstatusid):
+    if (jstatusid):
         return jstatusid
 
     raise ValueError('Could not find matching status for ' + bug.status)
@@ -234,7 +234,7 @@ def bz_to_jira_resolution(options, bug):
         jresolution = "None"
         jresolutionid = next((s for s in resolutions if jresolution == s.name), None)
                
-    if(jresolutionid):
+    if (jresolutionid):
         return jresolutionid
 
     raise ValueError('Could not find matching resolution for ' + bug.resolution)
@@ -264,18 +264,19 @@ def process(bug, bugs):
     changeddate = datetime.strptime(str(bug.delta_ts), '%Y%m%dT%H:%M:%S')
     difference = now - changeddate
 
-    if(options.verbose):
+    if (options.verbose):
+        print ""
         print '[DEBUG] %s - %s [%s, %s, [%s]] {%s} -> %s (%s)' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl, difference)
     else:
         sys.stdout.write('.')
         
     issue_dict = create_proxy_jira_dict(options, bug)
 
-    if(issue_dict):
+    if (issue_dict):
         proxyissue = lookup_proxy(options, bug)
         
-        if(proxyissue):
-            if(options.verbose):
+        if (proxyissue):
+            if (options.verbose):
                 print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key'] + " checking if something needs updating/syncing."
 
             fields = {}
@@ -294,11 +295,14 @@ def process(bug, bugs):
                 else:
                     print "No detected changes."
         else:
-            if(options.verbose):
-                print "[INFO] Want to create jira for " + str(bug)
+            if (options.dryrun):
+            	print "[INFO] Want to create jira for " + str(bug)
+            else:
+            	print "[INFO] Creating jira for " + str(bug)
+            if (options.verbose):
                 print "[DEBUG] " + str(issue_dict)
 
-            if(options.dryrun):
+            if (options.dryrun):
                 return
             
             newissue = jira.create_issue(fields=issue_dict)
@@ -322,9 +326,9 @@ def process(bug, bugs):
                  jstatus.name if jstatus else None,
                  jresolution.name if jresolution else None)
 
-            if(transid in transitionmap):
+            if (transid in transitionmap):
                 trans = transitionmap[transid]
-                if(trans):
+                if (trans):
                     #print "Want to do " + str(transid) + " with " + str(trans)
                     #print "Can do: " + str(jira.transitions(newissue))
 
@@ -332,7 +336,7 @@ def process(bug, bugs):
                     #print "Wanted res: " + str(wantedres)
 
                     try:
-                        if(wantedres):
+                        if (wantedres):
                             jira.transition_issue(newissue, trans["id"],resolution=wantedres)
                         else:
                             jira.transition_issue(newissue, trans["id"])
@@ -378,15 +382,15 @@ bz = bugzilla.Bugzilla(url=bzserver + "bugs/xmlrpc.cgi")
 
 queryobj = bz.url_to_query(query)
 
-print "[DEBUG] Actual query sent: " + str(queryobj)
-# print approximate url since xmlrpc.cgi accept last_change_time, but browser queries need in last_change_time
-print "[DEBUG] Approxmimate bugzilla weburl: " + query.replace("last_change_time","chfieldfrom")
+print "[DEBUG] xmlrpc post: " + str(queryobj)
+# print equivalent web url since xmlrpc.cgi uses last_change_time, but buglist.cgi queries use chfieldfrom
+print "[DEBUG] buglist get: " + query.replace("last_change_time","chfieldfrom")
     
 issues = bz.query(queryobj)
 
 print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
 
-if(len(issues) > 0):
+if (len(issues) > 0):
 
     print "[INFO] " + "Logging in to " + options.jiraserver
     jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
@@ -426,7 +430,7 @@ if(len(issues) > 0):
             print "  " + b
             
     # Prompt user to accept new JIRAs or delete them
-    if(len(createdbugs)>0): 
+    if (len(createdbugs)>0):
         accept = raw_input("Accept " + str(len(createdbugs)) + " created JIRAs? [Y/n] ")
         if accept.capitalize() in ["N"]:
             for b in createdbugs:
