@@ -76,7 +76,12 @@ def create_proxy_jira_dict(options, bug):
     if (not next((v for v in versions if jiraversion == v.name), None)):
         if (jiraversion and jiraversion != NO_VERSION): 
             print "[ERROR] Version '" + jiraversion + "' mapped from '" + bug.target_milestone + "' not found in " + ECLIPSE_PROJECT + ". Please create it or fix the mapping. Bug: " + str(bug)
-            accept = raw_input("Create " + jiraversion + " ?")
+
+            if (options.autocreate):
+                accept = "Y"
+            else:
+                accept = raw_input("Create " + jiraversion + " ?")
+                
             if accept.capitalize() in "Y":
                 newv = jira.create_version(jiraversion, ECLIPSE_PROJECT)
                 global versions
@@ -85,8 +90,10 @@ def create_proxy_jira_dict(options, bug):
             else:
                 missing_versions[jiraversion].add(bug)
                 return
-        elif (not jiraversion):
+            
+        if (not jiraversion):
             print "[ERROR] No mapping for '" + bug.target_milestone + "'. Please fix the mapping. Bug: " + str(bug)
+            jiraversion = "Missing Map"
             return
             
     ## TODO make this logic more clear.
@@ -96,9 +103,15 @@ def create_proxy_jira_dict(options, bug):
 
     ## ensure the product name exists as a component
     global components
-    if (not next((c for c in components if bug.product == c.name), None)): 
-        comp = jira.create_component(bug.product, ECLIPSE_PROJECT)
-        components = jira.project_components(ECLIPSE_PROJECT)
+    if (not next((c for c in components if bug.product == c.name), None)):
+        if (options.autocreate):
+            accept = "Y"
+        else:
+            accept = raw_input("Create component: " + bug.product + " ?")
+                
+        if accept.capitalize() in "Y":
+            comp = jira.create_component(bug.product, ECLIPSE_PROJECT)
+            components = jira.project_components(ECLIPSE_PROJECT)
 
 
     labels=['bzira']
@@ -248,6 +261,7 @@ def parse_options():
     parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
     parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="run without creating proxy issues.")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="more verbose console output")
+    parser.add_option("-a", "--auto-create", dest="autocreate", action="store_true", help="Automatically create components and versions.")
     parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, query only bugzillas changed in the last x hours.")
     parser.add_option("-S", "--start-date", dest="start_date", default="", help="if set, show only bugzillas changed since start date (yyyy-mm-dd)")
 
@@ -346,7 +360,7 @@ def process(bug, bugs):
                 #else:
                     #print "No transition needed"
             else:
-                raise ValueError("Do not know how to do transition for " + str(transid) + " with " + str(trans))
+                raise ValueError("Do not know how to do transition for " + str(transid))
 
     return newissue
 
@@ -420,10 +434,7 @@ if (len(issues) > 0):
         print "Missing version '" + v + "'"
         for b in k:
             print "  " + b.product + ": " + b.weburl
-        accept = raw_input("Create " + v + " ?")
-        if accept.capitalize() in "Y":
-            jira.create_version(v, ECLIPSE_PROJECT)
-
+        
     for v,k in jira_failure.iteritems():
         print "Jira " + v + " gave following errors:"
         for b in k:
