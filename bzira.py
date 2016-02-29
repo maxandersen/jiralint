@@ -133,14 +133,12 @@ def create_proxy_jira_dict(options, bug):
     return issue_dict
 
 def map_linuxtools(version):
-    #TODO make this use real neon versions.
-    #TODO curently based on map from xcoulon
     versions = {
         "4.2.1" : "Mars.2 (4.5)",
-        "4.2"   : "Mars.2 (4.5)",
-        "4.1"   : "Mars.1 (4.5)",
+        "4.2.0" : "Mars.2 (4.5)",
         "4.1.0" : "Mars.1 (4.5)", 
-        "4.0"   : "Mars (4.5)",
+        "4.0.0" : "Mars (4.5)",
+        "5.0.0" : "Neon (4.6)",
         "---"   : NO_VERSION
         }
     return versions.get(version, None)
@@ -155,8 +153,7 @@ bzprod_version_map = {
     # TODO ensure this works for 4.6.x -> Neon.x 
     "Platform" : (lambda version: re.sub(r"4.6(.*)", r"Neon (4.6)\1", version)),
 
-    # 4.2.1 -> Mars.2
-    # 5.0.0 -> Neon.?
+    # see map above
     "Linux Tools" : map_linuxtools,
 
     "m2e" : (lambda version: re.sub(r"1.7(.*)/Neon (.*)", r"Neon (4.6) \2", version)),
