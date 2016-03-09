@@ -263,6 +263,7 @@ def parse_options():
     parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, query only bugzillas changed in the last x hours")
     parser.add_option("-S", "--start-date", dest="start_date", default="", help="if set, show only bugzillas changed since start date (yyyy-mm-dd)")
     parser.add_option("-C", "--color", dest="colorconsole", action="store_true", help="if set, show colours in console with bash escapes")
+    parser.add_option("-H", "--html-color", dest="htmlcolorconsole", action="store_true", help="if set, show colours in console with html")
 
     (options, args) = parser.parse_args()
 
@@ -373,6 +374,13 @@ if (options.colorconsole):
     blue="\033[1;34m"
     purple="\033[0;35m"
     yellow="\033[1;33m"
+elif (options.htmlcolorconsole):
+    norm="</b>"
+    green="<b style='color:green'>"
+    red="<b style='color:red'>"
+    blue="<b style='color:blue'>"
+    purple="<b style='color:purple'>"
+    yellow="<b style='color:orange'>"
 else:
     norm=""
     green=""
