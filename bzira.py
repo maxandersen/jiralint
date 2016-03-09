@@ -75,7 +75,7 @@ def create_proxy_jira_dict(options, bug):
     ## check version exists, if not don't create proxy jira.
     if (not next((v for v in versions if jiraversion == v.name), None)):
         if (jiraversion and jiraversion != NO_VERSION): 
-            print "[ERROR] Version '" + jiraversion + "' mapped from '" + bug.target_milestone + "' not found in " + ECLIPSE_PROJECT + ". Please create it or fix the mapping. Bug: " + str(bug)
+            print red + "[ERROR] Version '" + green + jiraversion + norm + "' mapped from '" + green + bug.target_milestone + red + "' not found in " + green + ECLIPSE_PROJECT + red + ". Please create it or fix the mapping. " + blue + "Bug: " + str(bug) + norm
 
             if (options.autocreate):
                 accept = "Y"
@@ -92,7 +92,7 @@ def create_proxy_jira_dict(options, bug):
                 return
             
         if (not jiraversion):
-            print "[ERROR] No mapping for '" + bug.target_milestone + "'. Please fix the mapping. Bug: " + str(bug)
+            print red + "[ERROR] No mapping for '" + green + bug.target_milestone + red + "'. Please fix the mapping. " + blue + "Bug: " + str(bug) + norm 
             jiraversion = "Missing Map"
             return
             
@@ -178,12 +178,12 @@ def bz_to_jira_version(options, bug):
         jiraversion = b2j(bzversion)
         if (jiraversion):
             if (options.verbose):
-                print "[DEBUG] " + "Mapper: " + bug.product + " / " + bzversion + " -> " + str(jiraversion)
+                print "[DEBUG] " + "Mapper: " + yellow + bug.product + norm + " / " + yellow + bzversion + norm + " -> " + green + str(jiraversion) + norm
             return jiraversion
         else:
-            print "[ERROR] Unknown version for " + bug.product + " / " + bzversion
+            print red + "[ERROR] " + " Unknown version for " + yellow + bug.product + red + " / " + yellow + bzversion + norm
     else:
-        print "[ERROR] No version mapper found for " + bug.product
+        print red + "[ERROR] " + " No version mapper found for " + yellow + bug.product + norm
 
 bz2jira_priority = {
      'blocker' : 'Blocker',
@@ -256,11 +256,13 @@ def parse_options():
     parser.add_option("-u", "--user", dest="username", help="jira username")
     parser.add_option("-p", "--pwd", dest="password", help="jira password")
     parser.add_option("-s", "--server", dest="jiraserver", default="https://issues.stage.jboss.org", help="Jira instance")
-    parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="run without creating proxy issues.")
+    parser.add_option("-d", "--dry-run", dest="dryrun", action="store_true", help="run without creating proxy issues")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="more verbose console output")
-    parser.add_option("-a", "--auto-create", dest="autocreate", action="store_true", help="Automatically create components and versions.")
-    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, query only bugzillas changed in the last x hours.")
+    parser.add_option("-a", "--auto-create", dest="autocreate", action="store_true", help="if set, automatically create components and versions as needed")
+    parser.add_option("-A", "--auto-accept", dest="autoaccept", action="store_true", help="if set, automatically accept created issues")
+    parser.add_option("-m", "--min-age", dest="minimum_age_to_process", help="if set, query only bugzillas changed in the last x hours")
     parser.add_option("-S", "--start-date", dest="start_date", default="", help="if set, show only bugzillas changed since start date (yyyy-mm-dd)")
+    parser.add_option("-C", "--color", dest="colorconsole", action="store_true", help="if set, show colours in console with bash escapes")
 
     (options, args) = parser.parse_args()
 
@@ -277,7 +279,7 @@ def process(bug, bugs):
 
     if (options.verbose):
         print ""
-        print '[DEBUG] %s - %s [%s, %s, [%s]] {%s} -> %s (%s)' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, bug.weburl, difference)
+        print '[DEBUG] %s - %s [%s, %s, [%s]] {%s} (%s) -> ' % (bug.id, bug.summary, bug.product, bug.component, bug.target_milestone, bug.delta_ts, difference) + yellow + bzserver + str(bug.id) + norm
     else:
         sys.stdout.write('.')
         
@@ -288,7 +290,7 @@ def process(bug, bugs):
         
         if (proxyissue):
             if (options.verbose):
-                print "[INFO] " + bzserver + str(bug.id) + " already proxied as " + options.jiraserver + "/browse/" + proxyissue['key'] + " checking if something needs updating/syncing."
+                print "[INFO] " + yellow + bzserver + str(bug.id) + norm + " already proxied as " + blue + options.jiraserver + "/browse/" + proxyissue['key']  + norm + "; checking if something needs updating/syncing."
 
             fields = {}
             if (not next((c for c in proxyissue['fields']['components'] if bug.product == c['name']), None)):
@@ -321,7 +323,7 @@ def process(bug, bugs):
             
             ## Setup links
             link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
-            print "[INFO] Created " + options.jiraserver + "/browse/" + newissue.key
+            print "[INFO] Created " + green + options.jiraserver + "/browse/" + newissue.key + norm
             jira.add_simple_link(newissue, object=link)
 
             # Check for transition needed
@@ -363,6 +365,22 @@ def process(bug, bugs):
 
 options = parse_options()
 
+if (options.colorconsole):
+    # colours for console
+    norm="\033[0;39m"
+    green="\033[1;32m"
+    red="\033[1;31m"
+    blue="\033[1;34m"
+    purple="\033[0;35m"
+    yellow="\033[1;33m"
+else:
+    norm=""
+    green=""
+    red=""
+    blue=""
+    purple=""
+    yellow=""
+
 # TODO cache results locally so we don't have to keep hitting live server to do iterations
 bzserver = "https://bugs.eclipse.org/"
 basequery = bzserver + "bugs/buglist.cgi?status_whiteboard=RHT"
@@ -370,7 +388,7 @@ basequery = bzserver + "bugs/buglist.cgi?status_whiteboard=RHT"
 # get current datetime in UTC for comparison to bug.delta_ts, which is also in UTC; use this diff to ignore processing old bugzillas
 now = datetime.utcnow()
 if (options.verbose):
-    print "[DEBUG] " + "Current datetime: " + str(now) + " (UTC)"
+    print "[DEBUG] " + "Current datetime: " + yellow + str(now) + " (UTC)" + norm
     print "" 
 
 # calculate relative date if options.start_date not provided but minimum_age_to_process is provided
@@ -393,17 +411,17 @@ bz = bugzilla.Bugzilla(url=bzserver + "bugs/xmlrpc.cgi")
 
 queryobj = bz.url_to_query(query)
 
-print "[DEBUG] xmlrpc post: " + str(queryobj)
+print "[DEBUG] xmlrpc post: " + purple + str(queryobj) + norm
 # print equivalent web url since xmlrpc.cgi uses last_change_time, but buglist.cgi queries use chfieldfrom
-print "[DEBUG] buglist get: " + query.replace("last_change_time","chfieldfrom")
+print "[DEBUG] buglist get: " + purple + query.replace("last_change_time","chfieldfrom") + norm
     
 issues = bz.query(queryobj)
 
-print "[DEBUG] " + "Found " + str(len(issues)) + " bugzillas to process"
+print "[DEBUG] " + "Found " + yellow + str(len(issues)) + norm + " bugzillas to process"
 
 if (len(issues) > 0):
 
-    print "[INFO] " + "Logging in to " + options.jiraserver
+    print "[INFO] " + "Logging in to " + purple + options.jiraserver + norm
     jira = JIRA(options={'server':options.jiraserver}, basic_auth=(options.username, options.password))
 
     #TODO should get these data into something more structured than individual global variables.
@@ -411,7 +429,7 @@ if (len(issues) > 0):
     components = jira.project_components(ECLIPSE_PROJECT)
 
     if (options.verbose):
-        print "[DEBUG] " + "Found " + str(len(components)) + " components and " + str(len(versions)) + " versions in JIRA"
+        print "[DEBUG] " + "Found " + yellow + str(len(components)) + norm + " components and " + yellow + str(len(versions)) + norm + " versions in JIRA"
 
     resolutions = jira.resolutions()
     statuses = jira.statuses()
@@ -422,7 +440,7 @@ if (len(issues) > 0):
         try:
             process(bug, createdbugs)
         except ValueError as ve:
-            print "[ERROR] Issue when processing " + str(bug) + ". Cannot determine if the bug was created or not. See details above."
+            print red + "[ERROR] Issue when processing " + blue + str(bug) + red + ". Cannot determine if the bug was created or not. See details above. " + norm
             print ve
 
 
@@ -438,11 +456,11 @@ if (len(issues) > 0):
             print "  " + b
             
     # Prompt user to accept new JIRAs or delete them
-    if (len(createdbugs)>0):
+    if (len(createdbugs)>0 and not options.autoaccept):
         accept = raw_input("Accept " + str(len(createdbugs)) + " created JIRAs? [Y/n] ")
         if accept.capitalize() in ["N"]:
             for b in createdbugs:
-                print "[INFO] " + "Delete " + options.jiraserver + "/browse/" + str(b)
+                print "[INFO] " + "Delete " + red + options.jiraserver + "/browse/" + str(b) + norm
                 b.delete()
 else:
     print "[INFO] No bugzillas found matching the query. Nothing to do."
