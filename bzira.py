@@ -471,6 +471,6 @@ if (len(issues) > 0):
                 print "[INFO] " + "Delete " + red + options.jiraserver + "/browse/" + str(b) + norm
                 b.delete()
     else:
-    	print "[INFO] " + green + str(len(createdbugs)) + norm + " JIRAs created (from " + yellow + str(len(issues)) + norm + " issues) [since " + purple + last_change_time.strftime('%Y-%m-%d+%H:%M') + norm + "]"
+    	print "[INFO] " + str(len(createdbugs)) + " JIRAs created (from " + str(len(issues)) + " issues) [since " + last_change_time.strftime('%Y-%m-%d+%H:%M') + "]"
 else:
     print "[INFO] No bugzillas found matching the query. Nothing to do."
