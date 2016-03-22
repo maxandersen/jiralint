@@ -373,7 +373,7 @@ if (options.colorconsole):
     red="\033[1;31m"
     blue="\033[1;34m"
     purple="\033[0;35m"
-    yellow="\033[1;33m"
+    yellow="\033[0;33m"
 elif (options.htmlcolorconsole):
     norm="</b>"
     green="<b style='color:green'>"
@@ -470,5 +470,7 @@ if (len(issues) > 0):
             for b in createdbugs:
                 print "[INFO] " + "Delete " + red + options.jiraserver + "/browse/" + str(b) + norm
                 b.delete()
+    else:
+    	print "[INFO] " + green + str(len(createdbugs)) + norm + " JIRAs created (from " + yellow + str(len(issues)) + norm + " issues) [since " + purple + last_change_time.strftime('%Y-%m-%d+%H:%M') + norm + "]"
 else:
     print "[INFO] No bugzillas found matching the query. Nothing to do."
