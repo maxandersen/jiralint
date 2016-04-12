@@ -65,6 +65,10 @@ def lookup_proxy(options, bug):
         print data['issues']
         return 
 
+## just test the mapping but don't create anything
+def create_proxy_jira_dict_test(options, bug):
+    jiraversion  = bz_to_jira_version(options, bug)
+
 ## Create the jira dict object for how the bugzilla *should* look like
 def create_proxy_jira_dict(options, bug):
 
@@ -143,21 +147,40 @@ def map_linuxtools(version):
         }
     return versions.get(version, None)
 
+# TODO ensure this works for 4.6.x -> Neon.x 
+def map_platform(version):
+	if re.match(r"4.7(.*)", version):
+		return re.sub(r"4.7(.*)", r"Oxygen (4.7)\1", version)
+	elif re.match(r"4.6(.*)", version):
+		return re.sub(r"4.6(.*)", r"Neon (4.6)\1", version)
+	else:
+		return NO_VERSION
+
+# TODO ensure this works for 3.8.x -> Neon.x 
+def map_webtools(version):
+	if re.match(r"3.9(.*)", version):
+		return re.sub(r"3.9(.*)", r"Oxygen (4.7)\1", version)
+	elif re.match(r"3.8(.*)", version):
+		return re.sub(r"3.8(.*)", r"Neon (4.6)\1", version)
+	else:
+		return NO_VERSION
+
+# TODO ensure this works for m2e 1.8
+def map_m2e(version):
+	if re.match(r"1.8(.*)/Oxygen (.*)", version):
+		return re.sub(r"1.8(.*)/Oxygen (.*)", r"Oxygen (4.7) \2", version)
+	elif re.match(r"1.7(.*)/Neon (.*)", version):
+		return re.sub(r"1.7(.*)/Neon (.*)",   r"Neon (4.6) \2", version)
+	else:
+		return NO_VERSION
+
 bzprod_version_map = {
-    #"WTP Incubator" : (lambda version: NO_VERSION),
-
-    # TODO ensure this works for 3.8.x -> Neon.x 
-    "JSDT" : (lambda version: re.sub(r"3.8(.*)", r"Neon (4.6)\1", version)),
-    "WTP Source Editing" : (lambda version: re.sub(r"3.8(.*)", r"Neon (4.6)\1", version)),
-
-    # TODO ensure this works for 4.6.x -> Neon.x 
-    "Platform" : (lambda version: re.sub(r"4.6(.*)", r"Neon (4.6)\1", version)),
-
-    # see map above
+    #"WTP Incubator" : (lambda version: NO_VERSION), // no obvious mapping available for the Target Milestones
+    "JSDT" : map_webtools,
+    "WTP Source Editing" : map_webtools,
+    "Platform" : map_platform,
     "Linux Tools" : map_linuxtools,
-
-    "m2e" : (lambda version: re.sub(r"1.7(.*)/Neon (.*)", r"Neon (4.6) \2", version)),
-    
+    "m2e" : map_m2e
     }
     
 def bz_to_jira_version(options, bug):
