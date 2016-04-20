@@ -1,4 +1,14 @@
 {
+    "ds_board_everything": {
+        "description": "board for everything", 
+        "id": "12326939", 
+        "jql": "Project in (JBIDE, JBDS, ERT) AND status != Closed ORDER BY Rank ASC"
+    }, 
+    "ds_board_everythingelse": {
+        "description": "board for everything else not part of other boards", 
+        "id": "12326941", 
+        "jql": "Project in (JBIDE, JBDS, ERT) and not filter=ds_board_assparta and not filter=ds_board_californication and not filter=ds_board_buildnext AND status != Closed ORDER BY Rank ASC"
+    }, 
     "ds_freeze_unresolved": {
         "description": "Unresolved issues in frozen versions", 
         "id": "12323974", 
