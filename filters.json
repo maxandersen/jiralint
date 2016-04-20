@@ -7,7 +7,7 @@
     "ds_board_buildnext": {
         "description": "Issues for Californication backlog", 
         "id": "12326940", 
-        "jql": "project in (JBIDE, JBDS) AND component in (aeri, build, devdoc, discovery, easymport, marketplace, playground, target-platform, updatesite, versionwatch, xml-structured-editor) AND status != Closed ORDER BY Rank ASC"
+        "jql": "project in (JBIDE, JBDS) AND component in (aeri, build, devdoc, discovery, easymport, marketplace, installer, playground, target-platform, updatesite, versionwatch) AND status != Closed ORDER BY Rank ASC"
     }, 
     "ds_board_californication": {
         "description": "Issues for Californication backlog", 
