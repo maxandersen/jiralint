@@ -5,7 +5,7 @@
         "jql": "(project in (JBIDE, JBDS) AND component in (server, livereload, archives, openshift, cdk, hibernate, runtime-detection, docker, project-examples, 'common/jst/core', usage, jmx, website) OR project = ERT AND component = 'Linux Tools') AND status != Closed ORDER BY Rank ASC"
     }, 
     "ds_board_buildnext": {
-        "description": "Issues for Californication backlog", 
+        "description": "Issues for Build.next backlog", 
         "id": "12326940", 
         "jql": "project in (JBIDE, JBDS) AND component in (aeri, build, devdoc, discovery, easymport, marketplace, installer, playground, target-platform, updatesite, versionwatch) AND status != Closed ORDER BY Rank ASC"
     }, 
