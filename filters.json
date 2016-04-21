@@ -2,7 +2,7 @@
     "ds_board_assparta": {
         "description": "Issues for assparta backlog", 
         "id": "12326938", 
-        "jql": "(project in (JBIDE, JBDS) AND component in (server, livereload, archives, openshift, cdk, hibernate, runtime-detection, docker, project-examples, 'common/jst/core', usage, jmx) OR project = ERT AND component = 'Linux Tools') AND status != Closed ORDER BY Rank ASC"
+        "jql": "(project in (JBIDE, JBDS) AND component in (server, livereload, archives, openshift, cdk, hibernate, runtime-detection, docker, project-examples, 'common/jst/core', usage, jmx, website) OR project = ERT AND component = 'Linux Tools') AND status != Closed ORDER BY Rank ASC"
     }, 
     "ds_board_buildnext": {
         "description": "Issues for Californication backlog", 
