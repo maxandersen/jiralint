@@ -12,7 +12,7 @@
     "ds_board_californication": {
         "description": "Issues for Californication backlog", 
         "id": "12326937", 
-        "jql": "Project in (JBIDE, JBDS, ERT) AND component in (aerogear-hybrid, browsersim, cordovasim, nodejs, visual-page-editor-core, visual-page-editor-templates, xulrunner, javascript, JSDT, 'WTP Source Editing', 'jsp/jsf/xml/html-source-editing') AND status != Closed ORDER BY Rank ASC"
+        "jql": "Project in (JBIDE, JBDS, ERT) AND component in (aerogear-hybrid, browsersim, cordovasim, nodejs, visual-page-editor-core, visual-page-editor-templates, xulrunner, javascript, JSDT, 'WTP Source Editing', 'jsp/jsf/xml/html-source-editing','WTP Releng') AND status != Closed ORDER BY Rank ASC"
     }, 
     "ds_cdwtriage": {
         "description": "Issues are New and have no target release set", 
