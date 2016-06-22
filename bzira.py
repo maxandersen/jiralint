@@ -162,8 +162,8 @@ def map_platform(version):
 		return re.sub(r"4.7\.([123])", r"Oxygen.\1 (4.7)", version)
 	elif re.match(r"4.7 (.*)", version):
 		return re.sub(r"4.7 (.*)", r"Oxygen (4.7) \1", version)
-	elif re.match(r"4.6.0)", version):
-		return re.sub(r"4.6.0)", r"Neon (4.6)", version)
+	elif re.match(r"4.6.0", version):
+		return re.sub(r"4.6.0", r"Neon (4.6)", version)
 	elif re.match(r"4.6\.([123])", version):
 		return re.sub(r"4.6\.([123])", r"Neon.\1 (4.6)", version)
 	elif re.match(r"4.6 (.*)", version):
@@ -181,7 +181,7 @@ def map_webtools(version):
 		return re.sub(r"3.9", r"Oxygen (4.7)", version)
 	elif re.match(r"3.8.0", version):
 		return re.sub(r"3.8.0", r"Neon (4.6)", version)
-	elif re.match(r"3.8\.[1-9]", version):
+	elif re.match(r"3.8\.([1-9])", version):
 		return re.sub(r"3.8\.([1-9])", r"Neon.\1 (4.6)", version)
 	elif re.match(r"3.8 (.*)", version):
 		return re.sub(r"3.8 (.*)", r"Neon (4.6) \1", version)
