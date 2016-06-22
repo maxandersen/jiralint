@@ -136,32 +136,55 @@ def create_proxy_jira_dict(options, bug):
 
     return issue_dict
 
+def map_thym(version):
+	if re.match(r"2.0.0", version):
+		return re.sub(r"2.0.0", r"Neon (4.6)", version)
+	elif re.match(r"2.([123]).0", version):
+		return re.sub(r"2.([123]).0", r"Neon.\1 (4.6)", version)
+	else:
+		return NO_VERSION
+
 def map_linuxtools(version):
-    versions = {
-        "4.2.1" : "Mars.2 (4.5)",
-        "4.2.0" : "Mars.2 (4.5)",
-        "4.1.0" : "Mars.1 (4.5)", 
-        "4.0.0" : "Mars (4.5)",
-        "5.0.0" : "Neon (4.6)",
-        "---"   : NO_VERSION
-        }
-    return versions.get(version, None)
+	if re.match(r"4.0(.*)", version):
+		return re.sub(r"4.0(.*)", r"Mars (4.5)", version)
+	elif re.match(r"4.([123]).(.*)", version):
+		return re.sub(r"4.([123]).(.*)", r"Mars.\1 (4.5)", version)
+	elif re.match(r"5.0.0", version):
+		return re.sub(r"5.0.0", r"Neon (4.6)", version)
+	elif re.match(r"5.([123]).0", version):
+		return re.sub(r"5.([123]).0", r"Neon.\1 (4.6)", version)
+	else:
+		return NO_VERSION
 
 # TODO ensure this works for 4.6.x -> Neon.x 
 def map_platform(version):
-	if re.match(r"4.7(.*)", version):
-		return re.sub(r"4.7(.*)", r"Oxygen (4.7)\1", version)
-	elif re.match(r"4.6(.*)", version):
-		return re.sub(r"4.6(.*)", r"Neon (4.6)\1", version)
+	if re.match(r"4.7\.([123])", version):
+		return re.sub(r"4.7\.([123])", r"Oxygen.\1 (4.7)", version)
+	elif re.match(r"4.7 (.*)", version):
+		return re.sub(r"4.7 (.*)", r"Oxygen (4.7) \1", version)
+	elif re.match(r"4.6.0)", version):
+		return re.sub(r"4.6.0)", r"Neon (4.6)", version)
+	elif re.match(r"4.6\.([123])", version):
+		return re.sub(r"4.6\.([123])", r"Neon.\1 (4.6)", version)
+	elif re.match(r"4.6 (.*)", version):
+		return re.sub(r"4.6 (.*)", r"Neon (4.6) \1", version)
 	else:
 		return NO_VERSION
 
 # TODO ensure this works for 3.8.x -> Neon.x 
 def map_webtools(version):
-	if re.match(r"3.9(.*)", version):
-		return re.sub(r"3.9(.*)", r"Oxygen (4.7)\1", version)
-	elif re.match(r"3.8(.*)", version):
-		return re.sub(r"3.8(.*)", r"Neon (4.6)\1", version)
+	if re.match(r"3.9\.([0-9])", version):
+		return re.sub(r"3.9\.([0-9])", r"Oxygen.\1 (4.7)", version)
+	elif re.match(r"3.9 (.*)", version):
+		return re.sub(r"3.9 (.*)", r"Oxygen (4.7) \1", version)
+	elif re.match(r"3.9", version):
+		return re.sub(r"3.9", r"Oxygen (4.7)", version)
+	elif re.match(r"3.8.0", version):
+		return re.sub(r"3.8.0", r"Neon (4.6)", version)
+	elif re.match(r"3.8\.[1-9]", version):
+		return re.sub(r"3.8\.([1-9])", r"Neon.\1 (4.6)", version)
+	elif re.match(r"3.8 (.*)", version):
+		return re.sub(r"3.8 (.*)", r"Neon (4.6) \1", version)
 	else:
 		return NO_VERSION
 
@@ -180,7 +203,8 @@ bzprod_version_map = {
     "WTP Source Editing" : map_webtools,
     "Platform" : map_platform,
     "Linux Tools" : map_linuxtools,
-    "m2e" : map_m2e
+    "m2e" : map_m2e,
+    "Thym" : map_thym
     }
     
 def bz_to_jira_version(options, bug):
@@ -200,8 +224,8 @@ def bz_to_jira_version(options, bug):
         b2j = bzprod_version_map[bug.product]
         jiraversion = b2j(bzversion)
         if (jiraversion):
-            if (options.verbose):
-                print "[DEBUG] " + "Mapper: " + yellow + bug.product + norm + " / " + yellow + bzversion + norm + " -> " + green + str(jiraversion) + norm
+            #if (options.verbose):
+            print "[INFO] " + "Map: " + yellow + bug.product + norm + " / " + yellow + bzversion + norm + " -> " + green + str(jiraversion) + norm
             return jiraversion
         else:
             print red + "[ERROR] " + " Unknown version for " + yellow + bug.product + red + " / " + yellow + bzversion + norm
