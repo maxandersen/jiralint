@@ -12,6 +12,7 @@ import time
 import pytz
 import sys
 from collections import defaultdict
+import logging
 
 httpdebug = False
 
@@ -30,7 +31,6 @@ jira_failure = defaultdict(set)
 ### Enables http debugging
 if httpdebug:
     import requests
-    import logging
     import httplib
     httplib.HTTPConnection.debuglevel = 1
     logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from requests
@@ -54,7 +54,7 @@ transitionmap = {
 def lookup_proxy(options, bug):
     #TODO should keep a local cache from BZ->JIRA to avoid constant querying
     payload = {'jql': 'project = ' + ECLIPSE_PROJECT + ' and summary ~ \'EBZ#' + str(bug.id) +'\'', 'maxResults' : 5}
-    data = shared.jiraquery(options, "/rest/api/2/search?" + urllib.urlencode(payload))
+    data = shared.jiraquery(options, "/rest/api/latest/search?" + urllib.urlencode(payload))
     count = len(data['issues'])
     if (count == 0):
         return 
@@ -65,15 +65,30 @@ def lookup_proxy(options, bug):
         print data['issues']
         return 
 
+# check if remote link exists, eg., is https://issues.jboss.org/rest/api/latest/issue/ERT-356/remotelink == [] or contains actual content?
+def lookup_remotelink(options, jira_id):
+    data = shared.jiraquery(options, "/rest/api/latest/issue/" + jira_id + "/remotelink")
+    if (data and len(data) >=1):
+        # print "[INFO] Found remotelink for " + jira
+        return data[0]
+    else:
+        return
+
+# set up issue link to EBZ
+def create_remotelink(jira_id, bug):
+    link_dict = { "title": "Eclipse Bug #" + str(bug.id), "url": bug.weburl }
+    if (options.verbose):
+        print "[DEBUG] Add remotelink: " + str(link_dict)
+    jira.add_simple_link(jira_id, object=link_dict)
+
 ## just test the mapping but don't create anything
 def create_proxy_jira_dict_test(options, bug):
     jiraversion  = bz_to_jira_version(options, bug)
 
 ## Create the jira dict object for how the bugzilla *should* look like
 def create_proxy_jira_dict(options, bug):
-
+    global versions
     jiraversion  = bz_to_jira_version(options, bug)
-
     fixversion=[]
 
     ## check version exists, if not don't create proxy jira.
@@ -85,10 +100,8 @@ def create_proxy_jira_dict(options, bug):
                 accept = "Y"
             else:
                 accept = raw_input("Create " + jiraversion + " ?")
-                
             if accept.capitalize() in "Y":
                 newv = jira.create_version(jiraversion, ECLIPSE_PROJECT)
-                global versions
                 versions = jira.project_versions(ECLIPSE_PROJECT)
                 jiraversion = newv.name
             else:
@@ -137,65 +150,65 @@ def create_proxy_jira_dict(options, bug):
     return issue_dict
 
 def map_thym(version):
-	if re.match(r"2.0.0", version):
-		return re.sub(r"2.0.0", r"Neon (4.6)", version)
-	elif re.match(r"2.([123]).0", version):
-		return re.sub(r"2.([123]).0", r"Neon.\1 (4.6)", version)
-	else:
-		return NO_VERSION
+    if re.match(r"2.0.0", version):
+        return re.sub(r"2.0.0", r"Neon (4.6)", version)
+    elif re.match(r"2.([123]).0", version):
+        return re.sub(r"2.([123]).0", r"Neon.\1 (4.6)", version)
+    else:
+        return NO_VERSION
 
 def map_linuxtools(version):
-	if re.match(r"4.0(.*)", version):
-		return re.sub(r"4.0(.*)", r"Mars (4.5)", version)
-	elif re.match(r"4.([123]).(.*)", version):
-		return re.sub(r"4.([123]).(.*)", r"Mars.\1 (4.5)", version)
-	elif re.match(r"5.0.0", version):
-		return re.sub(r"5.0.0", r"Neon (4.6)", version)
-	elif re.match(r"5.([123]).0", version):
-		return re.sub(r"5.([123]).0", r"Neon.\1 (4.6)", version)
-	else:
-		return NO_VERSION
+    if re.match(r"4.0(.*)", version):
+        return re.sub(r"4.0(.*)", r"Mars (4.5)", version)
+    elif re.match(r"4.([123]).(.*)", version):
+        return re.sub(r"4.([123]).(.*)", r"Mars.\1 (4.5)", version)
+    elif re.match(r"5.0.0", version):
+        return re.sub(r"5.0.0", r"Neon (4.6)", version)
+    elif re.match(r"5.([123]).0", version):
+        return re.sub(r"5.([123]).0", r"Neon.\1 (4.6)", version)
+    else:
+        return NO_VERSION
 
 # TODO ensure this works for 4.6.x -> Neon.x 
 def map_platform(version):
-	if re.match(r"4.7\.([123])", version):
-		return re.sub(r"4.7\.([123])", r"Oxygen.\1 (4.7)", version)
-	elif re.match(r"4.7 (.*)", version):
-		return re.sub(r"4.7 (.*)", r"Oxygen (4.7) \1", version)
-	elif re.match(r"4.6.0", version):
-		return re.sub(r"4.6.0", r"Neon (4.6)", version)
-	elif re.match(r"4.6\.([123])", version):
-		return re.sub(r"4.6\.([123])", r"Neon.\1 (4.6)", version)
-	elif re.match(r"4.6 (.*)", version):
-		return re.sub(r"4.6 (.*)", r"Neon (4.6) \1", version)
-	else:
-		return NO_VERSION
+    if re.match(r"4.7\.([123])", version):
+        return re.sub(r"4.7\.([123])", r"Oxygen.\1 (4.7)", version)
+    elif re.match(r"4.7 (.*)", version):
+        return re.sub(r"4.7 (.*)", r"Oxygen (4.7) \1", version)
+    elif re.match(r"4.6.0", version):
+        return re.sub(r"4.6.0", r"Neon (4.6)", version)
+    elif re.match(r"4.6\.([123])", version):
+        return re.sub(r"4.6\.([123])", r"Neon.\1 (4.6)", version)
+    elif re.match(r"4.6 (.*)", version):
+        return re.sub(r"4.6 (.*)", r"Neon (4.6) \1", version)
+    else:
+        return NO_VERSION
 
 # TODO ensure this works for 3.8.x -> Neon.x 
 def map_webtools(version):
-	if re.match(r"3.9\.([0-9])", version):
-		return re.sub(r"3.9\.([0-9])", r"Oxygen.\1 (4.7)", version)
-	elif re.match(r"3.9 (.*)", version):
-		return re.sub(r"3.9 (.*)", r"Oxygen (4.7) \1", version)
-	elif re.match(r"3.9", version):
-		return re.sub(r"3.9", r"Oxygen (4.7)", version)
-	elif re.match(r"3.8.0", version):
-		return re.sub(r"3.8.0", r"Neon (4.6)", version)
-	elif re.match(r"3.8\.([1-9])", version):
-		return re.sub(r"3.8\.([1-9])", r"Neon.\1 (4.6)", version)
-	elif re.match(r"3.8 (.*)", version):
-		return re.sub(r"3.8 (.*)", r"Neon (4.6) \1", version)
-	else:
-		return NO_VERSION
+    if re.match(r"3.9\.([0-9])", version):
+        return re.sub(r"3.9\.([0-9])", r"Oxygen.\1 (4.7)", version)
+    elif re.match(r"3.9 (.*)", version):
+        return re.sub(r"3.9 (.*)", r"Oxygen (4.7) \1", version)
+    elif re.match(r"3.9", version):
+        return re.sub(r"3.9", r"Oxygen (4.7)", version)
+    elif re.match(r"3.8.0", version):
+        return re.sub(r"3.8.0", r"Neon (4.6)", version)
+    elif re.match(r"3.8\.([1-9])", version):
+        return re.sub(r"3.8\.([1-9])", r"Neon.\1 (4.6)", version)
+    elif re.match(r"3.8 (.*)", version):
+        return re.sub(r"3.8 (.*)", r"Neon (4.6) \1", version)
+    else:
+        return NO_VERSION
 
 # TODO ensure this works for m2e 1.8
 def map_m2e(version):
-	if re.match(r"1.8(.*)/Oxygen (.*)", version):
-		return re.sub(r"1.8(.*)/Oxygen (.*)", r"Oxygen (4.7) \2", version)
-	elif re.match(r"1.7(.*)/Neon (.*)", version):
-		return re.sub(r"1.7(.*)/Neon (.*)",   r"Neon (4.6) \2", version)
-	else:
-		return NO_VERSION
+    if re.match(r"1.8(.*)/Oxygen (.*)", version):
+        return re.sub(r"1.8(.*)/Oxygen (.*)", r"Oxygen (4.7) \2", version)
+    elif re.match(r"1.7(.*)/Neon (.*)", version):
+        return re.sub(r"1.7(.*)/Neon (.*)",   r"Neon (4.6) \2", version)
+    else:
+        return NO_VERSION
 
 bzprod_version_map = {
     #"WTP Incubator" : (lambda version: NO_VERSION), // no obvious mapping available for the Target Milestones
@@ -255,7 +268,6 @@ bz2jira_status = {
     }
     
 def bz_to_jira_status(options, bug):
-
     jstatusid = None
 
     if bug.status in bz2jira_status:
@@ -278,7 +290,6 @@ bz2jira_resolution = {
     }
     
 def bz_to_jira_resolution(options, bug):
-
     jstatusid = None
 
     if (bug.resolution == ""):
@@ -355,11 +366,16 @@ def process(bug, bugs):
                     isbug.update(fields)
                 else:
                     print "No detected changes."
+
+            # check if there's an existing remotelink; if not, add one
+            remotelink = lookup_remotelink(options, proxyissue['key'])
+            if (not remotelink):
+                create_remotelink(proxyissue['key'],bug)
         else:
             if (options.dryrun):
-            	print "[INFO] Want to create jira for " + str(bug)
+                print "[INFO] Want to create jira for " + str(bug)
             else:
-            	print "[INFO] Creating jira for " + str(bug)
+                print "[INFO] Creating jira for " + str(bug)
             if (options.verbose):
                 print "[DEBUG] " + str(issue_dict)
 
@@ -368,11 +384,10 @@ def process(bug, bugs):
             
             newissue = jira.create_issue(fields=issue_dict)
             bugs.append(newissue)
-            
-            ## Setup links
-            link = {"object": {'url': bug.weburl, 'title': "Original Eclipse Bug"}}
             print "[INFO] Created " + green + options.jiraserver + "/browse/" + newissue.key + norm
-            jira.add_simple_link(newissue, object=link)
+
+            # Setup issue link to EBZ
+            create_remotelink(newissue.key,bug)
 
             # Check for transition needed
             jstatus = bz_to_jira_status(options, bug)
@@ -518,6 +533,6 @@ if (len(issues) > 0):
                 print "[INFO] " + "Delete " + red + options.jiraserver + "/browse/" + str(b) + norm
                 b.delete()
     else:
-    	print "[INFO] " + str(len(createdbugs)) + " JIRAs created (from " + str(len(issues)) + " issues) [since " + last_change_time.strftime('%Y-%m-%d+%H:%M') + "]"
+        print "[INFO] " + str(len(createdbugs)) + " JIRAs created (from " + str(len(issues)) + " issues) [since " + last_change_time.strftime('%Y-%m-%d+%H:%M') + "]"
 else:
     print "[INFO] No bugzillas found matching the query. Nothing to do."
