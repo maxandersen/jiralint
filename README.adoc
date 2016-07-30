@@ -60,4 +60,15 @@ To run bzira:
 
 For now this script is hardcoded to staging Jira and a single RHT query.
 
+
+== Updating filters
+
+To add a completely new filter requires a manual step since jira for some obscure reason does not support looking up filters by name.
+
+When a new filter is added you have to do the following:
+
+# Add it without an 'id' to the `.json` file
+# Run the script, ie. `python setup_filters.py  -u jiralint -p secret -f filters.json,filters-composite.json`
+# Commit the updated `.json` file which now will contain the newly created filter
+
 Have fun! 

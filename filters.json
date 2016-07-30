@@ -1,9 +1,4 @@
 {
-    "ds_board_docker": {
-        "description": "Issues for Docker Tools backlog", 
-        "id": "12327828", 
-        "jql": "((project in (JBIDE, JBDS) AND component in (docker)) OR (project = ERT AND component = 'Linux Tools')) ORDER BY Rank ASC"
-    }, 
     "ds_board_assparta": {
         "description": "Issues for assparta backlog", 
         "id": "12326938", 
@@ -18,6 +13,11 @@
         "description": "Issues for Californication backlog", 
         "id": "12326937", 
         "jql": "Project in (JBIDE, JBDS, ERT) AND component in (aerogear-hybrid, browsersim, cordovasim, nodejs, visual-page-editor-core, visual-page-editor-templates, xulrunner, javascript, JSDT, 'WTP Source Editing', 'jsp/jsf/xml/html-source-editing','WTP Releng') AND status != Closed ORDER BY Rank ASC"
+    }, 
+    "ds_board_docker": {
+        "description": "Issues for Docker Tools backlog", 
+        "id": "12327830", 
+        "jql": "((project in (JBIDE, JBDS) AND component in (docker)) OR (project = ERT AND component = 'Linux Tools')) ORDER BY Rank ASC"
     }, 
     "ds_cdwtriage": {
         "description": "Issues are New and have no target release set", 
